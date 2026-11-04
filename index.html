@@ -2,253 +2,227 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RPG Certificate Editor</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RPG Certificate Studio</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Unicase:wght@500;700&family=Marck+Script&family=Press+Start+2P&family=UnifrakturMaguntia&family=Cinzel:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Cormorant+Unicase:wght@500;700&family=Marck+Script&family=Press+Start+2P&family=UnifrakturMaguntia&family=Cinzel:wght@400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700;800&family=Roboto+Slab:wght@400;500;700&family=Great+Vibes&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box}body{margin:0;background:#0f172a;color:#f1f5f9;font-family:Arial,sans-serif}
-.font-gothic{font-family:'UnifrakturMaguntia',cursive}.font-slavic{font-family:'Cormorant Unicase',serif}
-.font-handwrite{font-family:'Marck Script',cursive}.font-pixel{font-family:'Press Start 2P',monospace}.font-cinzel{font-family:'Cinzel',serif}
-.canvas{position:relative;flex:none;overflow:hidden;box-shadow:0 20px 25px #0008;user-select:none;background-color:#f4ecd8;background-image:radial-gradient(#e2d3b4 2px,transparent 2px);background-size:16px 16px}
-.bg-preset-darkmagic{background:linear-gradient(135deg,#1a102f,#05020a)}.bg-preset-scifi{background:#0d1117;border:2px solid #30363d}
-.bg-preset-royal{background:linear-gradient(135deg,#2b0c0c,#4a1515 50%,#1a0505)}
-.draggable{position:absolute;cursor:move;touch-action:none;white-space:pre-wrap;max-width:95%;overflow-wrap:anywhere}
-.draggable.active{outline:2px dashed #eab308;outline-offset:4px}
-.panel{background:#1e293b;border:1px solid #334155;border-radius:9px;padding:14px}
-input,select,textarea,button{font:inherit}input[type=text],input[type=number],select,textarea{background:#0f172a;color:#f1f5f9;border:1px solid #475569;border-radius:5px;padding:6px;min-width:0;resize:vertical}
-button{cursor:pointer;border-radius:5px;padding:7px 10px}
-@media(max-width:900px){#workspace{flex-direction:column!important}aside{width:100%!important;max-height:none!important}main{min-height:500px}}
+:root{color-scheme:dark;--bg:#0b1120;--panel:#172235;--panel2:#202e43;--line:#34445d;--text:#e8edf5;--muted:#9eacc1;--gold:#e6a93b;--blue:#299bb4}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Arial,sans-serif}
+button,input,select,textarea{font:inherit}button{border:0;border-radius:7px;padding:8px 11px;background:#33445d;color:#fff;cursor:pointer;transition:.15s}button:hover{filter:brightness(1.15)}button:disabled{opacity:.45;cursor:not-allowed}
+input[type=text],input[type=number],input[type=password],select,textarea{width:100%;min-width:0;background:#0c1525;color:var(--text);border:1px solid #40516b;border-radius:6px;padding:8px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 2px #e6a93b22}
+input[type=color]{width:100%;height:35px;padding:2px;background:#0c1525;border:1px solid #40516b;border-radius:6px}
+input[type=range]{width:100%;accent-color:var(--gold)}input[type=checkbox]{accent-color:var(--gold)}
+textarea{resize:vertical;min-height:70px;line-height:1.45}
+header{position:sticky;top:0;z-index:20;background:#111c2e;border-bottom:1px solid var(--line);padding:11px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-size:18px;font-weight:800;color:#f3c66c;letter-spacing:.02em}.toolbar{display:flex;gap:7px;flex-wrap:wrap}
+.primary{background:#bd7b1c;color:#160f05;font-weight:700}.success{background:#087f72}.info{background:#147e9b}.danger{background:#8d3037}.violet{background:#5844a0}
+#workspace{display:flex;min-height:calc(100vh - 60px)}aside{width:390px;flex:0 0 390px;padding:14px;display:flex;flex-direction:column;gap:12px;overflow:auto;max-height:calc(100vh - 60px);background:#111c2e;border-right:1px solid var(--line)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}.panel h3{margin:0 0 10px;color:#f0c36d;font-size:14px}.field{display:flex;flex-direction:column;gap:4px;min-width:0}.field label,.small-label{font-size:11px;color:var(--muted)}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid3{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:7px}.row{display:flex;align-items:center;gap:7px}.row>*{min-width:0}.btnrow{display:flex;gap:6px;flex-wrap:wrap}.btnrow button{flex:1}
+#textControlsList{display:flex;flex-direction:column;gap:9px;max-height:55vh;overflow:auto;padding-right:2px}
+.element-card{border:1px solid var(--line);border-radius:8px;padding:9px;background:#111c2d}.element-card.selected{border-color:var(--gold);box-shadow:0 0 0 1px #e6a93b55}.element-head{display:flex;gap:6px;align-items:center;margin-bottom:7px}.element-head strong{color:#b9c6d8;font-size:12px;white-space:nowrap}.element-head textarea{flex:1;min-height:66px;font-size:12px}.toolbtn{min-width:34px;padding:7px}.toggle.active{background:#b8791b;color:#170f04;font-weight:800}
+main{flex:1;min-width:0;min-height:650px;background:#070d18;padding:24px;display:flex;align-items:flex-start;justify-content:center;overflow:auto}
+#stageWrap{display:inline-block;margin:auto;position:relative}
+#certificateContainer{position:relative;flex:none;overflow:hidden;box-shadow:0 18px 55px #0009;user-select:none;background:#f4ecd8;background-image:radial-gradient(#e2d3b4 1.5px,transparent 1.5px);background-size:16px 16px}
+.bg-preset-darkmagic{background:linear-gradient(135deg,#1a102f,#05020a)}.bg-preset-scifi{background:#0d1117;border:2px solid #30363d}.bg-preset-royal{background:linear-gradient(135deg,#2b0c0c,#4a1515 50%,#1a0505)}.bg-preset-parchment{background-color:#f4ecd8;background-image:radial-gradient(#e2d3b4 1.5px,transparent 1.5px);background-size:16px 16px}
+#bgImageHolder,#darkOverlay,#layersContainer{position:absolute;inset:0;pointer-events:none}#bgImageHolder{background-size:cover;background-position:center}#darkOverlay{background:#000;pointer-events:none}
+#layersContainer{pointer-events:none}.draggable{position:absolute;pointer-events:auto;cursor:grab;touch-action:none;white-space:pre-wrap;overflow-wrap:anywhere;min-width:12px;max-width:95%;transform-origin:center center;line-height:1.2}.draggable:active{cursor:grabbing}.draggable.active{outline:2px dashed #d99b27;outline-offset:4px;z-index:1000}
+#seal-element{width:130px;height:130px;max-width:none}
+.hint{font-size:11px;color:var(--muted);line-height:1.4}.status{font-size:11px;color:#8dd5c8;min-height:15px}
+.modal{display:none;position:fixed;inset:0;background:#000b;z-index:50;align-items:center;justify-content:center;padding:16px}.modal.open{display:flex}.modalbox{width:min(520px,100%);max-height:85vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}.saved-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}.saved-row span{font-size:12px;overflow-wrap:anywhere}
+@media(max-width:900px){#workspace{flex-direction:column}aside{width:100%;flex:auto;max-height:none;border-right:0;border-bottom:1px solid var(--line)}main{min-height:520px;padding:16px}#textControlsList{max-height:none}}
+@media(max-width:520px){header{position:static}.brand{width:100%}.toolbar button,.toolbar select{font-size:11px;padding:7px}main{justify-content:flex-start}}
 </style>
 </head>
 <body>
-<header style="background:#1e293b;border-bottom:1px solid #334155;padding:12px 18px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;position:sticky;top:0;z-index:5">
-<strong style="font-size:20px;color:#fbbf24">📜 RPG Certificate Editor</strong>
-<div style="display:flex;gap:8px;flex-wrap:wrap">
-<select id="templatePreset" onchange="applyPreset(this.value)">
-<option value="">— Быстрые пресеты —</option><option value="hogwarts">🧙 Школа Магии</option><option value="military">⚔ Военный Указ</option><option value="scifi">🚀 Лицензия Пилота</option><option value="guild">🛡 Свидетельство Гильдии</option>
-</select>
-<button style="background:#d97706;color:#111827;font-weight:bold" onclick="exportPNG()">💾 Скачать PNG</button>
-<button style="background:#4338ca" onclick="openSupabaseModal()">⚙️ Supabase</button>
-<button style="background:#0891b2" onclick="saveToSupabase()">☁️ Сохранить</button>
-<button style="background:#0f766e" onclick="loadFromSupabase()">📂 Загрузить</button>
-</div></header>
-
-<div id="workspace" style="display:flex;min-height:calc(100vh - 60px)">
-<aside style="width:370px;flex:none;background:#1e293b;border-right:1px solid #334155;padding:16px;display:flex;flex-direction:column;gap:14px;overflow:auto">
-<section class="panel">
-<h3 style="color:#fbbf24;margin:0 0 12px">🖼️ 1. Фон и формат</h3>
-<label style="display:block;font-size:12px;color:#cbd5e1;margin-bottom:5px">Загрузить фон</label><input type="file" id="bgUploader" accept="image/*" onchange="handleBgUpload(event)" style="width:100%;font-size:12px">
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px">
-<button style="background:#fef3c7;color:#111827" onclick="setPresetBg('parchment')">Пергамент</button>
-<button style="background:#3b0764;color:#e9d5ff" onclick="setPresetBg('darkmagic')">Тёмная магия</button>
-<button style="background:#0f172a;color:#67e8f9" onclick="setPresetBg('scifi')">Sci-Fi</button>
-<button style="background:#450a0a;color:#fde68a" onclick="setPresetBg('royal')">Королевский</button>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
-<label style="font-size:12px">Формат<select id="aspectRatio" onchange="changeFormat()" style="width:100%;margin-top:4px"><option value="landscape">A4 альбомный</option><option value="portrait">A4 книжный</option><option value="square">Квадрат</option></select></label>
-<label style="font-size:12px">Затенение<input type="range" id="bgOverlay" min="0" max=".8" step=".05" value="0" oninput="updateOverlay(this.value)" style="width:100%;margin-top:8px"></label>
-</div></section>
-
-<section class="panel">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="color:#fbbf24;margin:0">✍️ 2. Текстовые элементы</h3><button style="background:#92400e" onclick="addText()">+ Текст</button></div>
-<div id="textControlsList" style="display:flex;flex-direction:column;gap:10px;max-height:48vh;overflow:auto"></div>
-</section>
-
-<section class="panel">
-<h3 style="color:#fbbf24;margin:0 0 10px">🛡️ 3. Печать / герб</h3>
-<label style="font-size:12px;color:#cbd5e1">Загрузить изображение печати</label><input type="file" id="sealUploader" accept="image/*" onchange="handleSealUpload(event)" style="width:100%;font-size:12px;margin:6px 0 10px">
-<div style="display:flex;gap:6px"><button style="background:#7f1d1d" onclick="setBuiltInSeal('wax')">Красный воск</button><button style="background:#92400e" onclick="setBuiltInSeal('gold')">Золото</button><button style="background:#581c87" onclick="setBuiltInSeal('arcane')">Магия</button></div>
-<div id="sealAdjustments" style="margin-top:12px">
-<label style="display:block;font-size:12px">Размер <span id="sealSizeVal">130px</span><input type="range" min="50" max="300" value="130" oninput="updateSealSize(this.value)" style="width:100%"></label>
-<label style="display:block;font-size:12px;margin-top:8px">Поворот <span id="sealRotateVal">0°</span><input type="range" min="-180" max="180" value="0" oninput="updateSealRotate(this.value)" style="width:100%"></label>
-<button style="background:#7f1d1d;margin-top:8px" onclick="removeSeal()">Удалить печать</button>
-</div></section>
+<header>
+  <div class="brand">📜 RPG Certificate Studio</div>
+  <div class="toolbar">
+    <select id="templatePreset" aria-label="Шаблон" style="width:auto" onchange="applyPreset(this.value)">
+      <option value="">— Шаблоны —</option><option value="hogwarts">🧙 Школа магии</option><option value="military">⚔ Военный указ</option><option value="scifi">🚀 Sci-Fi</option><option value="guild">🛡 Гильдия</option>
+    </select>
+    <button onclick="undo()" title="Отменить (Ctrl+Z)">↶</button><button onclick="redo()" title="Повторить (Ctrl+Y)">↷</button>
+    <button class="primary" onclick="exportPNG()">💾 PNG</button>
+    <button class="info" onclick="exportJSON()">⇩ Проект</button>
+    <button onclick="$('importJSON').click()">⇧ Импорт</button>
+    <button class="violet" onclick="openSupabaseModal()">⚙ Supabase</button>
+    <button class="success" onclick="saveToSupabase()">☁ Сохранить</button>
+    <button class="info" onclick="loadFromSupabase()">📂 Загрузить</button>
+  </div>
+</header>
+<input type="file" id="importJSON" accept=".json,application/json" hidden onchange="importJSON(event)">
+<div id="workspace">
+<aside>
+  <section class="panel">
+    <h3>🖼️ 1. Фон и формат</h3>
+    <div class="field"><label>Загрузить изображение фона</label><input type="file" id="bgUploader" accept="image/*" onchange="handleBgUpload(event)"></div>
+    <div class="btnrow" style="margin-top:9px"><button style="background:#eee0bd;color:#2c2115" onclick="setPresetBg('parchment')">Пергамент</button><button style="background:#3b0764" onclick="setPresetBg('darkmagic')">Тёмная магия</button><button style="background:#0f172a;color:#67e8f9" onclick="setPresetBg('scifi')">Sci-Fi</button><button style="background:#450a0a;color:#fde68a" onclick="setPresetBg('royal')">Королевский</button></div>
+    <div class="grid2" style="margin-top:10px">
+      <div class="field"><label>Формат</label><select id="aspectRatio" onchange="changeFormat()"><option value="landscape">A4 альбомный</option><option value="portrait">A4 книжный</option><option value="square">Квадрат</option></select></div>
+      <div class="field"><label>Затенение: <span id="overlayVal">0%</span></label><input type="range" id="bgOverlay" min="0" max=".8" step=".05" value="0" oninput="updateOverlay(this.value)"></div>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="row" style="justify-content:space-between;margin-bottom:9px"><h3 style="margin:0">✍️ 2. Текстовые элементы</h3><button class="primary" onclick="addText()">＋ Добавить текст</button></div>
+    <div class="hint" style="margin-bottom:8px">Выберите блок на листе или в списке. Текст можно редактировать прямо в поле; Enter создаёт новую строку.</div>
+    <div id="textControlsList"></div>
+  </section>
+  <section class="panel">
+    <h3>🛡️ 3. Печать / герб</h3>
+    <div class="field"><label>Загрузить изображение печати</label><input type="file" id="sealUploader" accept="image/*" onchange="handleSealUpload(event)"></div>
+    <div class="btnrow" style="margin-top:8px"><button style="background:#7f1d1d" onclick="setBuiltInSeal('wax')">Красный воск</button><button style="background:#92400e" onclick="setBuiltInSeal('gold')">Золото</button><button style="background:#581c87" onclick="setBuiltInSeal('arcane')">Магия</button></div>
+    <div id="sealAdjustments" style="margin-top:10px">
+      <div class="grid2"><div class="field"><label>Размер: <span id="sealSizeVal">130px</span></label><input id="sealSize" type="range" min="40" max="320" value="130" oninput="updateSealSize(this.value)"></div><div class="field"><label>Поворот: <span id="sealRotateVal">0°</span></label><input id="sealRotate" type="range" min="-180" max="180" value="0" oninput="updateSealRotate(this.value)"></div></div>
+      <button class="danger" style="margin-top:8px" onclick="removeSeal()">Удалить печать</button>
+    </div>
+  </section>
+  <section class="panel">
+    <h3>💡 Управление</h3>
+    <div class="hint">Перетаскивайте текст и печать мышью или пальцем. Стрелки — перемещение выбранного элемента, Shift + стрелка — быстрее. Delete — удалить текст. Ctrl/Cmd + Z — отмена, Ctrl/Cmd + Y — повтор. Проект автоматически сохраняется в этом браузере.</div>
+    <div id="saveStatus" class="status" style="margin-top:7px"></div>
+  </section>
 </aside>
+<main><div id="stageWrap"><div id="certificateContainer" class="bg-preset-parchment" style="width:800px;height:565px"><div id="bgImageHolder"></div><div id="darkOverlay"></div><div id="layersContainer"></div></div></div></main>
+</div>
 
-<main style="flex:1;min-width:0;background:#020617;padding:24px;display:flex;justify-content:center;align-items:center;overflow:auto">
-<div id="certificateContainer" class="canvas" style="width:800px;height:565px">
-<div id="darkOverlay" style="position:absolute;inset:0;background:#000;opacity:0;pointer-events:none"></div>
-<div id="bgImageHolder" style="position:absolute;inset:0;background-size:cover;background-position:center;pointer-events:none"></div>
-<div id="layersContainer" style="position:absolute;inset:0"></div>
-</div></main></div>
-
-<div id="supabaseModal" style="display:none;position:fixed;inset:0;background:#000c;z-index:20;align-items:center;justify-content:center;padding:16px">
-<div class="panel" style="width:min(440px,100%);background:#1e293b">
-<h3 style="color:#fbbf24;margin-top:0">Настройка Supabase</h3>
-<p style="font-size:12px;color:#cbd5e1">Параметры сохраняются только в этом браузере. Нужна таблица certificates с колонками id (int8), title (text), data (jsonb), created_at (timestamptz).</p>
-<label style="font-size:12px">Project URL<input id="sbUrl" type="text" style="width:100%;margin:5px 0 10px" placeholder="https://xxxx.supabase.co"></label>
-<label style="font-size:12px">Anon / Public Key<input id="sbKey" type="password" style="width:100%;margin:5px 0 12px" placeholder="Public anon key"></label>
-<div style="display:flex;justify-content:flex-end;gap:8px"><button style="background:#475569" onclick="closeSupabaseModal()">Отмена</button><button style="background:#d97706;color:#111827" onclick="saveSupabaseCredentials()">Сохранить ключи</button></div>
+<div class="modal" id="supabaseModal"><div class="modalbox">
+  <h3 style="color:#f0c36d;margin-top:0">Настройка Supabase</h3>
+  <p class="hint">Параметры сохраняются только в этом браузере. Таблица <b>certificates</b>: id (int8), title (text), data (jsonb), created_at (timestamptz). Для работы нужны корректные URL/ключ и подходящие политики доступа (RLS).</p>
+  <div class="field"><label>Project URL</label><input id="sbUrl" type="text" placeholder="https://xxxx.supabase.co"></div>
+  <div class="field" style="margin-top:9px"><label>Anon / Publishable key</label><input id="sbKey" type="password" placeholder="Public anon key"></div>
+  <div class="btnrow" style="justify-content:flex-end;margin-top:14px"><button onclick="closeSupabaseModal()">Отмена</button><button class="primary" onclick="saveSupabaseCredentials()">Проверить и сохранить</button></div>
 </div></div>
-<div id="loadModal" style="display:none;position:fixed;inset:0;background:#000c;z-index:21;align-items:center;justify-content:center;padding:16px">
-<div class="panel" style="width:min(520px,100%);background:#1e293b"><div style="display:flex;justify-content:space-between"><h3 style="margin-top:0;color:#67e8f9">Сохранённые грамоты</h3><button onclick="closeLoadModal()">✕</button></div><div id="supabaseItemsList"></div></div></div>
+<div class="modal" id="loadModal"><div class="modalbox">
+  <div class="row" style="justify-content:space-between"><h3 style="color:#67e8f9;margin:0">Сохранённые грамоты</h3><button onclick="closeLoadModal()">✕</button></div>
+  <div id="supabaseItemsList" style="margin-top:10px"></div>
+</div></div>
 
 <script>
-let appState={
+'use strict';
+const $=id=>document.getElementById(id);
+const FONT_OPTIONS=[
+ ['font-slavic','Славянский (Cormorant Unicase)'],['font-gothic','Готика'],['font-handwrite','Рукописный'],['font-cinzel','Cinzel — классика'],['font-pixel','Пиксельный'],['font-cormorant','Cormorant Garamond'],['font-playfair','Playfair Display'],['font-slab','Roboto Slab'],['font-vibes','Great Vibes']
+];
+const FONT_CSS={ 'font-slavic':"'Cormorant Unicase',serif",'font-gothic':"'UnifrakturMaguntia',cursive",'font-handwrite':"'Marck Script',cursive",'font-cinzel':"'Cinzel',serif",'font-pixel':"'Press Start 2P',monospace",'font-cormorant':"'Cormorant Garamond',serif",'font-playfair':"'Playfair Display',serif",'font-slab':"'Roboto Slab',serif",'font-vibes':"'Great Vibes',cursive"};
+const DEFAULT_STATE=()=>({
  format:'landscape',bgPreset:'parchment',customBgUrl:null,overlayOpacity:0,
  elements:[
-  {id:'el-1',content:'УКАЗ И НАГРАДА',font:'font-slavic',size:36,color:'#4a1515',x:250,y:40,bold:true,italic:false,align:'center'},
-  {id:'el-2',content:'Настоящим подтверждается, что храбрый воин',font:'font-handwrite',size:22,color:'#2b0c0c',x:180,y:120,bold:false,italic:false,align:'center'},
-  {id:'el-3',content:'РИЧАРД ЛЕОНОР',font:'font-gothic',size:48,color:'#851414',x:220,y:180,bold:true,italic:false,align:'center'},
-  {id:'el-4',content:'проявил нечеловеческую отвагу при защите Цитадели от полчищ скверны и награждается Высшим Орденом Короны.',font:'font-slavic',size:18,color:'#1a0505',x:100,y:270,bold:false,italic:false,align:'center'}
+  {id:'el-1',content:'УКАЗ И НАГРАДА',font:'font-slavic',size:36,color:'#4a1515',x:250,y:40,bold:true,italic:false,underline:false,align:'center',width:500,lineHeight:1.2,letterSpacing:0,rotate:0},
+  {id:'el-2',content:'Настоящим подтверждается, что храбрый воин',font:'font-handwrite',size:22,color:'#2b0c0c',x:180,y:120,bold:false,italic:false,underline:false,align:'center',width:440,lineHeight:1.2,letterSpacing:0,rotate:0},
+  {id:'el-3',content:'РИЧАРД ЛЕОНОР',font:'font-gothic',size:48,color:'#851414',x:220,y:180,bold:true,italic:false,underline:false,align:'center',width:420,lineHeight:1.2,letterSpacing:0,rotate:0},
+  {id:'el-4',content:'проявил нечеловеческую отвагу при защите Цитадели от полчищ скверны и награждается Высшим Орденом Короны.',font:'font-slavic',size:18,color:'#1a0505',x:100,y:270,bold:false,italic:false,underline:false,align:'center',width:600,lineHeight:1.35,letterSpacing:0,rotate:0}
  ],
  seal:{visible:true,type:'wax',customUrl:null,x:620,y:380,size:130,rotate:-12}
-};
-let activeElementId=null,supabaseClient=null,drag=null;
+});
+let appState=DEFAULT_STATE(),activeElementId=null,drag=null,supabaseClient=null,history=[],historyIndex=-1,historyLock=false,autoSaveTimer=null;
 const sealSVG={
  wax:'<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#851414" stroke="#4a0808" stroke-width="4"/><circle cx="50" cy="50" r="38" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 2"/><path d="M50 20 L58 38 L78 38 L62 50 L68 68 L50 56 L32 68 L38 50 L22 38 L42 38 Z" fill="#f59e0b"/></svg>',
  gold:'<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#d97706" stroke="#78350f" stroke-width="3"/><circle cx="50" cy="50" r="32" fill="none" stroke="#78350f" stroke-width="2"/><text x="50" y="60" font-size="32" text-anchor="middle" fill="#78350f">♛</text></svg>',
  arcane:'<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#4c1d95" stroke="#2e1065" stroke-width="4"/><polygon points="50,15 80,75 20,75" fill="none" stroke="#c084fc" stroke-width="3"/><polygon points="50,85 80,25 20,25" fill="none" stroke="#c084fc" stroke-width="3"/><circle cx="50" cy="50" r="12" fill="#c084fc"/></svg>'
 };
-function $(id){return document.getElementById(id)}
-function renderApp(){renderCanvas();renderControls()}
-
+function clone(v){return JSON.parse(JSON.stringify(v))}
+function normalizeElement(e,i){return {id:String(e.id||'el-'+(i+1)),content:String(e.content??''),font:FONT_CSS[e.font]?e.font:'font-slavic',size:clamp(e.size,8,160,24),color:/^#[0-9a-f]{6}$/i.test(e.color)?e.color:'#000000',x:num(e.x,0),y:num(e.y,0),bold:!!e.bold,italic:!!e.italic,underline:!!e.underline,align:['left','center','right','justify'].includes(e.align)?e.align:'left',width:clamp(e.width,30,2000,400),lineHeight:clamp(e.lineHeight,.7,3,1.2),letterSpacing:clamp(e.letterSpacing,-5,30,0),rotate:clamp(e.rotate,-180,180,0)}}
+function num(v,f=0){const n=Number(v);return Number.isFinite(n)?n:f}function clamp(v,min,max,f){return Math.max(min,Math.min(max,num(v,f)))}
+function normalizeState(s){const d=DEFAULT_STATE();if(!s||typeof s!=='object')return d;return {format:['landscape','portrait','square'].includes(s.format)?s.format:d.format,bgPreset:['parchment','darkmagic','scifi','royal'].includes(s.bgPreset)?s.bgPreset:d.bgPreset,customBgUrl:typeof s.customBgUrl==='string'?s.customBgUrl:null,overlayOpacity:clamp(s.overlayOpacity,0,.8,0),elements:Array.isArray(s.elements)?s.elements.map(normalizeElement):d.elements,seal:{...d.seal,...(s.seal||{}),visible:s.seal?.visible!==false,type:['wax','gold','arcane'].includes(s.seal?.type)?s.seal.type:'wax',x:num(s.seal?.x,d.seal.x),y:num(s.seal?.y,d.seal.y),size:clamp(s.seal?.size,40,320,130),rotate:clamp(s.seal?.rotate,-180,180,0),customUrl:typeof s.seal?.customUrl==='string'?s.seal.customUrl:null}}}
+function snapshot(){if(historyLock)return;const s=JSON.stringify(appState);if(history[historyIndex]===s)return;history=history.slice(0,historyIndex+1);history.push(s);if(history.length>60)history.shift();historyIndex=history.length-1}
+function restoreHistory(i){if(i<0||i>=history.length)return;historyLock=true;historyIndex=i;appState=normalizeState(JSON.parse(history[i]));activeElementId=null;renderApp();historyLock=false;queueSave()}
+function undo(){restoreHistory(historyIndex-1)}function redo(){restoreHistory(historyIndex+1)}
+function changed(){snapshot();queueSave()}
+function queueSave(){clearTimeout(autoSaveTimer);autoSaveTimer=setTimeout(()=>{try{localStorage.setItem('rpg_certificate_autosave',JSON.stringify(appState));$('saveStatus').textContent='✓ Автосохранение в браузере';}catch(e){$('saveStatus').textContent='Не удалось автосохранить: возможно, изображения слишком большие.'}},350)}
+function renderApp(){renderCanvas();renderControls();syncGlobalControls()}
+function syncGlobalControls(){$('aspectRatio').value=appState.format;$('bgOverlay').value=appState.overlayOpacity;$('overlayVal').textContent=Math.round(appState.overlayOpacity*100)+'%';$('sealSize').value=appState.seal.size;$('sealRotate').value=appState.seal.rotate;$('sealSizeVal').textContent=appState.seal.size+'px';$('sealRotateVal').textContent=appState.seal.rotate+'°';$('sealAdjustments').style.display=appState.seal.visible?'block':'none'}
 function renderCanvas(){
- const c=$('certificateContainer'),layers=$('layersContainer');
- const sizes={landscape:[800,565],portrait:[565,800],square:[600,600]};
- c.style.width=sizes[appState.format][0]+'px';c.style.height=sizes[appState.format][1]+'px';
- c.className='canvas'+(appState.customBgUrl?'':' bg-preset-'+appState.bgPreset);
- $('darkOverlay').style.opacity=appState.overlayOpacity;
- $('bgImageHolder').style.backgroundImage=appState.customBgUrl?`url("${appState.customBgUrl}")`:'none';
+ const c=$('certificateContainer'),layers=$('layersContainer'),sizes={landscape:[800,565],portrait:[565,800],square:[600,600]};
+ c.style.width=sizes[appState.format][0]+'px';c.style.height=sizes[appState.format][1]+'px';c.className='bg-preset-'+appState.bgPreset;
+ $('darkOverlay').style.opacity=appState.overlayOpacity;$('bgImageHolder').style.backgroundImage=appState.customBgUrl?`url("${appState.customBgUrl}")`:'none';
  layers.innerHTML='';
  appState.elements.forEach(el=>{
-  const d=document.createElement('div');d.id=el.id;d.className=`draggable ${el.font} ${activeElementId===el.id?'active':''}`;
-  Object.assign(d.style,{
-   left:el.x+'px',
-   top:el.y+'px',
-   fontSize:el.size+'px',
-   color:el.color,
-   fontWeight:el.bold?'bold':'normal',
-   fontStyle:el.italic?'italic':'normal',
-   textAlign:el.align||'left'
-  });
-  d.textContent=el.content;layers.appendChild(d);
+  const d=document.createElement('div');d.id=el.id;d.className='draggable'+(activeElementId===el.id?' active':'');d.textContent=el.content;
+  Object.assign(d.style,{left:el.x+'px',top:el.y+'px',width:el.width+'px',fontFamily:FONT_CSS[el.font],fontSize:el.size+'px',color:el.color,fontWeight:el.bold?'700':'400',fontStyle:el.italic?'italic':'normal',textDecoration:el.underline?'underline':'none',textAlign:el.align,lineHeight:el.lineHeight,letterSpacing:el.letterSpacing+'px',transform:`rotate(${el.rotate}deg)`});
+  layers.appendChild(d);
  });
- if(appState.seal.visible){
-  const d=document.createElement('div');d.id='seal-element';d.className='draggable '+(activeElementId==='seal-element'?'active':'');
-  Object.assign(d.style,{left:appState.seal.x+'px',top:appState.seal.y+'px',width:appState.seal.size+'px',height:appState.seal.size+'px',transform:`rotate(${appState.seal.rotate}deg)`});
-  if(appState.seal.customUrl){const img=document.createElement('img');img.src=appState.seal.customUrl;img.style.cssText='width:100%;height:100%;object-fit:contain;pointer-events:none';d.appendChild(img)}
-  else d.innerHTML=sealSVG[appState.seal.type]||sealSVG.wax;
+ if(appState.seal.visible){const d=document.createElement('div');d.id='seal-element';d.className='draggable'+(activeElementId==='seal-element'?' active':'');Object.assign(d.style,{left:appState.seal.x+'px',top:appState.seal.y+'px',width:appState.seal.size+'px',height:appState.seal.size+'px',transform:`rotate(${appState.seal.rotate}deg)`});
+  if(appState.seal.customUrl){const img=document.createElement('img');img.src=appState.seal.customUrl;img.alt='Печать';img.style.cssText='width:100%;height:100%;object-fit:contain;pointer-events:none';d.appendChild(img)}else d.innerHTML=sealSVG[appState.seal.type]||sealSVG.wax;
   d.querySelector('svg')?.setAttribute('style','width:100%;height:100%');layers.appendChild(d);
  }
 }
-
+function makeField(label,control){const w=document.createElement('div');w.className='field';const l=document.createElement('label');l.textContent=label;w.append(l,control);return w}
+function makeInput(type,value,onchange,attrs={}){const x=document.createElement('input');x.type=type;x.value=value;Object.entries(attrs).forEach(([k,v])=>x.setAttribute(k,v));x.addEventListener(type==='color'?'input':'change',()=>onchange(x.value));return x}
 function renderControls(){
  const list=$('textControlsList');list.innerHTML='';
  appState.elements.forEach((el,i)=>{
-  const box=document.createElement('div');box.className='panel';box.style.padding='9px';box.style.borderColor=activeElementId===el.id?'#d97706':'#334155';
-  
-  const title=document.createElement('div');title.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:7px';
-  const num=document.createElement('span');num.textContent='#'+(i+1);num.style.color='#94a3b8';num.style.fontSize='12px';
-  
-  const textarea=document.createElement('textarea');textarea.value=el.content;textarea.style.cssText='flex:1;height:54px;font-size:12px';textarea.placeholder='Текст грамоты (можно вводить переносы строк)';
-  textarea.addEventListener('input',()=>{
-   el.content=textarea.value;
-   const canvasText=$(el.id);if(canvasText)canvasText.textContent=textarea.value;
-  });
-  
-  const del=document.createElement('button');del.textContent='✕';del.style.background='#7f1d1d';del.onclick=()=>removeText(el.id);
-  title.append(num,textarea,del);box.append(title);
-  
-  const row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:6px;margin-bottom:6px';
-  const font=document.createElement('select');
-  [['font-slavic','Славянский'],['font-gothic','Готика'],['font-handwrite','Рукописный'],['font-cinzel','Антиква'],['font-pixel','Пиксельный']].forEach(([v,t])=>{let o=document.createElement('option');o.value=v;o.textContent=t;font.append(o)});
-  font.value=el.font;
-  font.onchange=()=>{el.font=font.value;renderCanvas()};
-  
-  const size=document.createElement('input');size.type='number';size.min=8;size.max=160;size.value=el.size;
-  size.onchange=()=>{el.size=Math.max(8,Math.min(160,Number(size.value)||8));renderCanvas()};
-  
-  const color=document.createElement('input');color.type='color';color.value=el.color;color.style.width='100%';
-  color.oninput=()=>{el.color=color.value;const d=$(el.id);if(d)d.style.color=color.value};
-  
-  row.append(font,size,color);box.append(row);
-
-  const rowStyle=document.createElement('div');rowStyle.style.cssText='display:flex;gap:6px;align-items:center';
-  
-  const btnBold=document.createElement('button');btnBold.textContent='B';btnBold.style.fontWeight='bold';btnBold.style.flex='1';btnBold.style.background=el.bold?'#d97706':'#334155';
-  btnBold.onclick=()=>{
-   el.bold=!el.bold;
-   btnBold.style.background=el.bold?'#d97706':'#334155';
-   const d=$(el.id);if(d)d.style.fontWeight=el.bold?'bold':'normal';
-  };
-  
-  const btnItalic=document.createElement('button');btnItalic.textContent='I';btnItalic.style.fontStyle='italic';btnItalic.style.flex='1';btnItalic.style.background=el.italic?'#d97706':'#334155';
-  btnItalic.onclick=()=>{
-   el.italic=!el.italic;
-   btnItalic.style.background=el.italic?'#d97706':'#334155';
-   const d=$(el.id);if(d)d.style.fontStyle=el.italic?'italic':'normal';
-  };
-  
-  rowStyle.append(btnBold,btnItalic);box.append(rowStyle);
+  const box=document.createElement('div');box.className='element-card'+(activeElementId===el.id?' selected':'');box.addEventListener('click',()=>{if(activeElementId!==el.id){activeElementId=el.id;renderCanvas();renderControls()}});
+  const head=document.createElement('div');head.className='element-head';const title=document.createElement('strong');title.textContent='Блок '+(i+1);
+  const ta=document.createElement('textarea');ta.value=el.content;ta.placeholder='Введите текст. Переносы строк сохраняются.';ta.addEventListener('click',e=>e.stopPropagation());ta.addEventListener('input',()=>{el.content=ta.value;const node=$(el.id);if(node)node.textContent=el.content;queueSave()});ta.addEventListener('change',()=>snapshot());
+  const dup=document.createElement('button');dup.className='toolbtn';dup.textContent='⧉';dup.title='Дублировать';dup.onclick=e=>{e.stopPropagation();duplicateText(el.id)};
+  const del=document.createElement('button');del.className='toolbtn danger';del.textContent='✕';del.title='Удалить';del.onclick=e=>{e.stopPropagation();removeText(el.id)};
+  head.append(title,ta,dup,del);box.append(head);
+  const font=document.createElement('select');FONT_OPTIONS.forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;font.append(o)});font.value=el.font;font.onchange=()=>{el.font=font.value;changed();renderCanvas()};
+  const size=makeInput('number',el.size,v=>{el.size=clamp(v,8,160,24);changed();renderCanvas()},{min:8,max:160,step:1});
+  const color=makeInput('color',el.color,v=>{el.color=v;queueSave();const n=$(el.id);if(n)n.style.color=v});
+  const row=document.createElement('div');row.className='grid3';row.append(makeField('Шрифт',font),makeField('Размер',size),makeField('Цвет',color));box.append(row);
+  const styles=document.createElement('div');styles.className='btnrow';styles.style.marginTop='7px';
+  [['B','bold','Жирный'],['I','italic','Курсив'],['U','underline','Подчёркнутый']].forEach(([txt,key,tip])=>{const b=document.createElement('button');b.textContent=txt;b.title=tip;b.className='toggle'+(el[key]?' active':'');b.onclick=e=>{e.stopPropagation();el[key]=!el[key];changed();renderCanvas();renderControls()};styles.append(b)});
+  const align=document.createElement('select');[['left','Слева'],['center','По центру'],['right','Справа'],['justify','По ширине']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;align.append(o)});align.value=el.align;align.onchange=()=>{el.align=align.value;changed();renderCanvas()};
+  styles.append(makeField('Выравнивание',align));box.append(styles);
+  const dims=document.createElement('div');dims.className='grid2';dims.style.marginTop='7px';
+  const x=makeInput('number',el.x,v=>{el.x=num(v);changed();renderCanvas()});const y=makeInput('number',el.y,v=>{el.y=num(v);changed();renderCanvas()});
+  dims.append(makeField('X',x),makeField('Y',y));box.append(dims);
+  const advanced=document.createElement('details');advanced.style.marginTop='7px';const summary=document.createElement('summary');summary.textContent='Дополнительные параметры';summary.style.cursor='pointer';summary.style.color='#b8c5d7';advanced.append(summary);
+  const advgrid=document.createElement('div');advgrid.className='grid2';advgrid.style.marginTop='8px';
+  const width=makeInput('number',el.width,v=>{el.width=clamp(v,30,2000,400);changed();renderCanvas()},{min:30,max:2000});
+  const lh=makeInput('number',el.lineHeight,v=>{el.lineHeight=clamp(v,.7,3,1.2);changed();renderCanvas()},{min:.7,max:3,step:.05});
+  const spacing=makeInput('number',el.letterSpacing,v=>{el.letterSpacing=clamp(v,-5,30,0);changed();renderCanvas()},{min:-5,max:30,step:.5});
+  const rotate=makeInput('number',el.rotate,v=>{el.rotate=clamp(v,-180,180,0);changed();renderCanvas()},{min:-180,max:180});
+  advgrid.append(makeField('Ширина блока, px',width),makeField('Межстрочный интервал',lh),makeField('Межбуквенный интервал, px',spacing),makeField('Поворот, °',rotate));advanced.append(advgrid);box.append(advanced);
   list.append(box);
  });
+ if(!appState.elements.length){const p=document.createElement('p');p.className='hint';p.textContent='Пока нет текстовых блоков. Нажмите «Добавить текст».';list.append(p)}
  $('sealAdjustments').style.display=appState.seal.visible?'block':'none';
- $('sealSizeVal').textContent=appState.seal.size+'px';$('sealRotateVal').textContent=appState.seal.rotate+'°';
 }
-
-function addText(){const id='el-'+Date.now();appState.elements.push({id,content:'Новый текст',font:'font-slavic',size:24,color:'#000000',x:150,y:150,bold:false,italic:false,align:'center'});activeElementId=id;renderApp()}
-function removeText(id){appState.elements=appState.elements.filter(e=>e.id!==id);if(activeElementId===id)activeElementId=null;renderApp()}
-function setPresetBg(p){appState.bgPreset=p;appState.customBgUrl=null;renderCanvas()}
-function handleBgUpload(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{appState.customBgUrl=r.result;renderCanvas()};r.readAsDataURL(f)}
-function changeFormat(){appState.format=$('aspectRatio').value;renderCanvas()}
-function updateOverlay(v){appState.overlayOpacity=Number(v);$('darkOverlay').style.opacity=v}
-function handleSealUpload(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{appState.seal.visible=true;appState.seal.customUrl=r.result;renderApp()};r.readAsDataURL(f)}
-function setBuiltInSeal(t){appState.seal.visible=true;appState.seal.type=t;appState.seal.customUrl=null;renderApp()}
-function updateSealSize(v){appState.seal.size=Number(v);const d=$('seal-element');if(d){d.style.width=v+'px';d.style.height=v+'px'}$('sealSizeVal').textContent=v+'px'}
-function updateSealRotate(v){appState.seal.rotate=Number(v);const d=$('seal-element');if(d)d.style.transform=`rotate(${v}deg)`;$('sealRotateVal').textContent=v+'°'}
-function removeSeal(){appState.seal.visible=false;renderApp()}
-
-function applyPreset(p){
- if(!p)return;
- const data={
-  hogwarts:{bg:'parchment',texts:[['ШКОЛА МАГИИ И ВОЛШЕБСТВА','font-gothic',32,'#2b0c0c',180,50,true,false],['Свидетельствует о том, что юный маг','font-handwrite',20,'#4a1515',220,130,false,false],['АЛЕКСАНДР БЛЕК','font-slavic',40,'#851414',230,190,true,false],['успешно сдал экзамены по дисциплине\n«Защита от Тёмных Искусств».','font-handwrite',22,'#1a0505',120,280,false,false]],seal:'wax'},
-  military:{bg:'royal',texts:[['БОЕВОЙ УКАЗ №404','font-cinzel',36,'#f59e0b',230,50,true,false],['За проявленное мужество и отвагу в бою','font-slavic',20,'#e2e8f0',200,140,false,false],['КАПИТАН ВАЛЕНТАЙН','font-cinzel',38,'#ef4444',180,210,true,false]],seal:'gold'},
-  scifi:{bg:'scifi',texts:[['PILOT LICENSE // SECTOR 7','font-pixel',20,'#22d3ee',150,60,false,false],['ID: #8940-EX-ORION','font-pixel',14,'#a855f7',240,140,false,false],['COMMANDER Shepard','font-cinzel',32,'#ffffff',200,220,true,false]],seal:'arcane'},
-  guild:{bg:'parchment',texts:[['СВИДЕТЕЛЬСТВО ГИЛЬДИИ','font-cinzel',32,'#4a1515',180,55,true,false],['Настоящим подтверждается, что','font-handwrite',22,'#2b0c0c',220,140,false,false],['ИМЯ ПЕРСОНАЖА','font-gothic',42,'#851414',220,205,true,false],['принят в ряды гильдии\nи обладает всеми правами её члена.','font-slavic',20,'#1a0505',125,295,false,false]],seal:'gold'}
- };
- const d=data[p];if(!d)return;appState.bgPreset=d.bg;appState.customBgUrl=null;
- appState.elements=d.texts.map((t,i)=>({id:'el-'+(i+1),content:t[0],font:t[1],size:t[2],color:t[3],x:t[4],y:t[5],bold:t[6],italic:t[7],align:'center'}));
- appState.seal={visible:true,type:d.seal,customUrl:null,x:600,y:360,size:130,rotate:-8};activeElementId=null;$('templatePreset').value='';renderApp();
-}
-
-$('certificateContainer').addEventListener('pointerdown',e=>{
- const target=e.target.closest('.draggable');
- activeElementId=target?target.id:null;
- if(!target){renderCanvas();return}
- e.preventDefault();target.setPointerCapture?.(e.pointerId);
- const rect=target.getBoundingClientRect();drag={id:target.id,dx:e.clientX-rect.left,dy:e.clientY-rect.top};
- renderCanvas();
-});
-document.addEventListener('pointermove',e=>{
- if(!drag)return;const c=$('certificateContainer').getBoundingClientRect(),x=e.clientX-c.left-drag.dx,y=e.clientY-c.top-drag.dy;
- if(drag.id==='seal-element'){appState.seal.x=Math.round(x);appState.seal.y=Math.round(y)}
- else{const el=appState.elements.find(v=>v.id===drag.id);if(el){el.x=Math.round(x);el.y=Math.round(y)}}
- const d=$(drag.id);if(d){d.style.left=x+'px';d.style.top=y+'px'}
-});
-document.instanceListener||document.addEventListener('pointerup',()=>{if(drag){drag=null;renderControls()}});
-
-async function exportPNG(){
- if(!window.html2canvas){alert('Не загрузилась библиотека экспорта. Обновите страницу и попробуйте снова.');return}
- const active=activeElementId;activeElementId=null;renderCanvas();
- try{const canvas=await html2canvas($('certificateContainer'),{scale:2,useCORS:true,backgroundColor:null});
- const a=document.createElement('a');a.download='certificate_'+Date.now()+'.png';a.href=canvas.toDataURL('image/png');a.click()}
- catch(err){console.error(err);alert('Не удалось создать PNG: '+err.message)}
- finally{activeElementId=active;renderCanvas()}
-}
-function openSupabaseModal(){$('sbUrl').value=localStorage.getItem('sb_url')||'';$('sbKey').value=localStorage.getItem('sb_key')||'';$('supabaseModal').style.display='flex'}
-function closeSupabaseModal(){$('supabaseModal').style.display='none'}
+function addText(){const id='el-'+Date.now();appState.elements.push(normalizeElement({id,content:'Новый текст',font:'font-slavic',size:24,color:'#000000',x:150,y:150,bold:false,italic:false,align:'center',width:400}));activeElementId=id;changed();renderApp()}
+function duplicateText(id){const el=appState.elements.find(e=>e.id===id);if(!el)return;const copy=clone(el);copy.id='el-'+Date.now();copy.x+=20;copy.y+=20;appState.elements.push(copy);activeElementId=copy.id;changed();renderApp()}
+function removeText(id){appState.elements=appState.elements.filter(e=>e.id!==id);if(activeElementId===id)activeElementId=null;changed();renderApp()}
+function setPresetBg(p){appState.bgPreset=p;appState.customBgUrl=null;changed();renderCanvas()}
+function readImage(file,callback){if(!file)return;if(!file.type.startsWith('image/')){alert('Выберите файл изображения.');return}const r=new FileReader();r.onload=()=>callback(r.result);r.onerror=()=>alert('Не удалось прочитать файл.');r.readAsDataURL(file)}
+function handleBgUpload(e){readImage(e.target.files[0],url=>{appState.customBgUrl=url;changed();renderCanvas()});e.target.value=''}
+function changeFormat(){appState.format=$('aspectRatio').value;changed();renderCanvas()}
+function updateOverlay(v){appState.overlayOpacity=clamp(v,0,.8,0);$('darkOverlay').style.opacity=appState.overlayOpacity;$('overlayVal').textContent=Math.round(appState.overlayOpacity*100)+'%';queueSave()}
+function handleSealUpload(e){readImage(e.target.files[0],url=>{appState.seal.visible=true;appState.seal.customUrl=url;changed();renderApp()});e.target.value=''}
+function setBuiltInSeal(t){appState.seal.visible=true;appState.seal.type=t;appState.seal.customUrl=null;changed();renderApp()}
+function updateSealSize(v){appState.seal.size=clamp(v,40,320,130);$('sealSizeVal').textContent=appState.seal.size+'px';const d=$('seal-element');if(d){d.style.width=appState.seal.size+'px';d.style.height=appState.seal.size+'px'}queueSave()}
+function updateSealRotate(v){appState.seal.rotate=clamp(v,-180,180,0);$('sealRotateVal').textContent=appState.seal.rotate+'°';const d=$('seal-element');if(d)d.style.transform=`rotate(${appState.seal.rotate}deg)`;queueSave()}
+function removeSeal(){appState.seal.visible=false;activeElementId=null;changed();renderApp()}
+const PRESETS={
+ hogwarts:{bg:'parchment',texts:[['ШКОЛА МАГИИ И ВОЛШЕБСТВА','font-gothic',32,'#2b0c0c',180,50,true,false],['Свидетельствует о том, что юный маг','font-handwrite',20,'#4a1515',180,130,false,false],['АЛЕКСАНДР БЛЕК','font-slavic',40,'#851414',180,190,true,false],['успешно сдал экзамены по дисциплине\n«Защита от Тёмных Искусств».','font-handwrite',22,'#1a0505',100,280,false,false]],seal:'wax'},
+ military:{bg:'royal',texts:[['БОЕВОЙ УКАЗ №404','font-cinzel',36,'#f59e0b',180,50,true,false],['За проявленное мужество и отвагу в бою','font-slavic',20,'#e2e8f0',180,140,false,false],['КАПИТАН ВАЛЕНТАЙН','font-cinzel',38,'#ef4444',180,210,true,false]],seal:'gold'},
+ scifi:{bg:'scifi',texts:[['PILOT LICENSE // SECTOR 7','font-pixel',20,'#22d3ee',150,60,false,false],['ID: #8940-EX-ORION','font-pixel',14,'#a855f7',240,140,false,false],['COMMANDER Shepard','font-cinzel',32,'#ffffff',200,220,true,false]],seal:'arcane'},
+ guild:{bg:'parchment',texts:[['СВИДЕТЕЛЬСТВО ГИЛЬДИИ','font-cinzel',32,'#4a1515',180,55,true,false],['Настоящим подтверждается, что','font-handwrite',22,'#2b0c0c',180,140,false,false],['ИМЯ ПЕРСОНАЖА','font-gothic',42,'#851414',180,205,true,false],['принят в ряды гильдии\nи обладает всеми правами её члена.','font-slavic',20,'#1a0505',100,295,false,false]],seal:'gold'}
+};
+function applyPreset(p){if(!p||!PRESETS[p])return;const d=PRESETS[p];appState.bgPreset=d.bg;appState.customBgUrl=null;appState.elements=d.texts.map((t,i)=>normalizeElement({id:'el-'+(i+1),content:t[0],font:t[1],size:t[2],color:t[3],x:t[4],y:t[5],bold:t[6],italic:t[7],align:'center',width:500}));appState.seal={visible:true,type:d.seal,customUrl:null,x:600,y:360,size:130,rotate:-8};activeElementId=null;$('templatePreset').value='';changed();renderApp()}
+function pointerDown(e){const target=e.target.closest('.draggable');if(!target)return;activeElementId=target.id;const rect=target.getBoundingClientRect(),c=$('certificateContainer').getBoundingClientRect();drag={id:target.id,dx:e.clientX-rect.left,dy:e.clientY-rect.top};renderCanvas();renderControls();e.preventDefault()}
+$('certificateContainer').addEventListener('pointerdown',pointerDown);
+document.addEventListener('pointermove',e=>{if(!drag)return;const c=$('certificateContainer').getBoundingClientRect(),x=e.clientX-c.left-drag.dx,y=e.clientY-c.top-drag.dy;if(drag.id==='seal-element'){appState.seal.x=Math.round(x);appState.seal.y=Math.round(y)}else{const el=appState.elements.find(v=>v.id===drag.id);if(el){el.x=Math.round(x);el.y=Math.round(y)}}const d=$(drag.id);if(d){d.style.left=x+'px';d.style.top=y+'px'}});
+document.addEventListener('pointerup',()=>{if(drag){drag=null;snapshot();queueSave();renderControls()}});
+document.addEventListener('pointercancel',()=>{if(drag){drag=null;snapshot();queueSave()}});
+document.addEventListener('keydown',e=>{const tag=document.activeElement?.tagName;if(['INPUT','TEXTAREA','SELECT'].includes(tag)||document.activeElement?.isContentEditable)return;const mod=e.ctrlKey||e.metaKey;if(mod&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo();return}if(mod&&e.key.toLowerCase()==='y'){e.preventDefault();redo();return}if((e.key==='Delete'||e.key==='Backspace')&&activeElementId&&!['seal-element'].includes(activeElementId)){removeText(activeElementId);return}if(activeElementId&&e.key.startsWith('Arrow')){e.preventDefault();const step=e.shiftKey?10:1;let obj=activeElementId==='seal-element'?appState.seal:appState.elements.find(x=>x.id===activeElementId);if(!obj)return;if(e.key==='ArrowLeft')obj.x-=step;if(e.key==='ArrowRight')obj.x+=step;if(e.key==='ArrowUp')obj.y-=step;if(e.key==='ArrowDown')obj.y+=step;renderCanvas();queueSave();snapshot()}});
+async function exportPNG(){if(!window.html2canvas){alert('Не загрузилась библиотека экспорта. Проверьте подключение к интернету и обновите страницу.');return}const old=activeElementId;activeElementId=null;renderCanvas();try{await document.fonts.ready;const canvas=await html2canvas($('certificateContainer'),{scale:2,useCORS:true,backgroundColor:null,logging:false});const a=document.createElement('a');a.download='certificate_'+new Date().toISOString().slice(0,10)+'.png';a.href=canvas.toDataURL('image/png');a.click()}catch(err){console.error(err);alert('Не удалось создать PNG: '+err.message)}finally{activeElementId=old;renderCanvas()}}
+function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function exportJSON(){downloadBlob(new Blob([JSON.stringify(appState,null,2)],{type:'application/json'}),'certificate-project.json')}
+function importJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{appState=normalizeState(JSON.parse(r.result));activeElementId=null;changed();renderApp()}catch(err){alert('Не удалось импортировать проект: '+err.message)}};r.readAsText(f);e.target.value=''}
+function openSupabaseModal(){$('sbUrl').value=localStorage.getItem('sb_url')||'';$('sbKey').value=localStorage.getItem('sb_key')||'';$('supabaseModal').classList.add('open')}
+function closeSupabaseModal(){$('supabaseModal').classList.remove('open')}
 function initSupabaseFromStorage(){try{const u=localStorage.getItem('sb_url'),k=localStorage.getItem('sb_key');supabaseClient=u&&k&&window.supabase?window.supabase.createClient(u,k):null}catch(e){console.error(e);supabaseClient=null}}
-function saveSupabaseCredentials(){const u=$('sbUrl').value.trim(),k=$('sbKey').value.trim();if(!u||!k){alert('Заполните URL и Key');return}try{localStorage.setItem('sb_url',u);localStorage.setItem('sb_key',k);initSupabaseFromStorage();if(!supabaseClient)throw new Error('Не удалось создать подключение');closeSupabaseModal();alert('Настройки сохранены')}catch(e){alert('Ошибка настройки: '+e.message)}}
-async function saveToSupabase(){if(!supabaseClient){alert('Сначала настройте Supabase');openSupabaseModal();return}const title=prompt('Название шаблона:','Грамота для ролевой');if(!title)return;try{const {error}=await supabaseClient.from('certificates').insert([{title,data:appState}]);if(error)throw error;alert('Шаблон сохранён')}catch(e){alert('Ошибка сохранения: '+e.message)}}
-async function loadFromSupabase(){if(!supabaseClient){alert('Сначала настройте Supabase');openSupabaseModal();return}const list=$('supabaseItemsList');$('loadModal').style.display='flex';list.textContent='Загрузка…';try{const {data,error}=await supabaseClient.from('certificates').select('id,title,created_at,data').order('created_at',{ascending:false});if(error)throw error;list.innerHTML='';if(!data?.length){list.textContent='Сохранённых грамот пока нет';return}data.forEach(item=>{const row=document.createElement('div');row.style.cssText='display:flex;justify-content:space-between;gap:8px;padding:10px;border-bottom:1px solid #475569';const label=document.createElement('span');label.textContent=item.title+' — '+new Date(item.created_at).toLocaleString('ru-RU');const open=document.createElement('button');open.textContent='Открыть';open.style.background='#0891b2';open.onclick=()=>{appState=item.data;activeElementId=null;renderApp();closeLoadModal()};const del=document.createElement('button');del.textContent='Удалить';del.style.background='#7f1d1d';del.onclick=()=>deleteSupabaseItem(item.id);const actions=document.createElement('span');actions.append(open,del);row.append(label,actions);list.append(row)})}catch(e){list.textContent='Ошибка загрузки: '+e.message}}
-function closeLoadModal(){$('loadModal').style.display='none'}
-async function deleteSupabaseItem(id){if(!confirm('Удалить этот шаблон?'))return;try{const {error}=await supabaseClient.from('certificates').delete().eq('id',id);if(error)throw error;loadFromSupabase()}catch(e){alert('Ошибка удаления: '+e.message)}}
-window.addEventListener('DOMContentLoaded',()=>{initSupabaseFromStorage();renderApp()});
+async function saveSupabaseCredentials(){const u=$('sbUrl').value.trim(),k=$('sbKey').value.trim();if(!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(u)||!k){alert('Проверьте Project URL и публичный anon/publishable key.');return}try{if(!window.supabase)throw new Error('Библиотека Supabase не загрузилась.');const client=window.supabase.createClient(u,k);const {error}=await client.from('certificates').select('id').limit(1);if(error)throw error;localStorage.setItem('sb_url',u);localStorage.setItem('sb_key',k);supabaseClient=client;closeSupabaseModal();alert('Подключение проверено и сохранено.')}catch(e){alert('Не удалось подключиться: '+(e.message||e))}}
+async function saveToSupabase(){if(!supabaseClient){alert('Сначала настройте Supabase.');openSupabaseModal();return}const title=prompt('Название грамоты:','Грамота для ролевой');if(!title?.trim())return;try{const {error}=await supabaseClient.from('certificates').insert([{title:title.trim(),data:appState}]);if(error)throw error;alert('Проект сохранён в Supabase.')}catch(e){alert('Ошибка сохранения: '+(e.message||e))}}
+async function loadFromSupabase(){if(!supabaseClient){alert('Сначала настройте Supabase.');openSupabaseModal();return}const list=$('supabaseItemsList');$('loadModal').classList.add('open');list.textContent='Загрузка…';try{const {data,error}=await supabaseClient.from('certificates').select('id,title,created_at,data').order('created_at',{ascending:false}).limit(100);if(error)throw error;list.innerHTML='';if(!data?.length){list.textContent='Сохранённых грамот пока нет.';return}data.forEach(item=>{const row=document.createElement('div');row.className='saved-row';const label=document.createElement('span');label.textContent=(item.title||'Без названия')+' — '+(item.created_at?new Date(item.created_at).toLocaleString('ru-RU'):'');const actions=document.createElement('div');actions.className='btnrow';const open=document.createElement('button');open.className='info';open.textContent='Открыть';open.onclick=()=>{if(!confirm('Загрузить проект? Текущий проект будет заменён.'))return;appState=normalizeState(item.data);activeElementId=null;changed();renderApp();closeLoadModal()};const del=document.createElement('button');del.className='danger';del.textContent='Удалить';del.onclick=()=>deleteSupabaseItem(item.id);actions.append(open,del);row.append(label,actions);list.append(row)})}catch(e){list.textContent='Ошибка загрузки: '+(e.message||e)}}
+function closeLoadModal(){$('loadModal').classList.remove('open')}
+async function deleteSupabaseItem(id){if(!confirm('Удалить эту грамоту из Supabase?'))return;try{const {error}=await supabaseClient.from('certificates').delete().eq('id',id);if(error)throw error;await loadFromSupabase()}catch(e){alert('Ошибка удаления: '+(e.message||e))}}
+window.addEventListener('DOMContentLoaded',()=>{try{const saved=localStorage.getItem('rpg_certificate_autosave');if(saved)appState=normalizeState(JSON.parse(saved))}catch(e){console.warn('Autosave unavailable',e)}initSupabaseFromStorage();snapshot();renderApp()});
 </script>
-</body></html>
+</body>
+</html>
