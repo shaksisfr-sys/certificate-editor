@@ -1,806 +1,207 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Редактор Грамот и Грамот для Ролевых Игр</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- html2canvas для экспорта в картинку -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Unicase:wght@500;700&family=Marck+Script&family=Press+Start+2P&family=UnifrakturMaguntia&family=Cinzel:wght@700&display=swap" rel="stylesheet">
-    
-    <style>
-        .font-gothic { font-family: 'UnifrakturMaguntia', cursive; }
-        .font-slavic { font-family: 'Cormorant Unicase', serif; }
-        .font-handwrite { font-family: 'Marck Script', cursive; }
-        .font-pixel { font-family: 'Press Start 2P', monospace; }
-        .font-cinzel { font-family: 'Cinzel', serif; }
-
-        .canvas-container {
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.04);
-            user-select: none;
-        }
-
-        .draggable {
-            cursor: move;
-            position: absolute;
-            touch-action: none;
-        }
-
-        .draggable.active {
-            outline: 2px dashed #eab308;
-            outline-offset: 4px;
-        }
-
-        /* Пресеты фонов */
-        .bg-preset-parchment {
-            background-color: #f4ecd8;
-            background-image: radial-gradient(#e2d3b4 2px, transparent 2px);
-            background-size: 16px 16px;
-        }
-        .bg-preset-darkmagic {
-            background: linear-gradient(135deg, #1a102f 0%, #05020a 100%);
-        }
-        .bg-preset-scifi {
-            background: #0d1117;
-            border: 2px solid #30363d;
-        }
-        .bg-preset-royal {
-            background: linear-gradient(135deg, #2b0c0c 0%, #4a1515 50%, #1a0505 100%);
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPG Certificate Editor</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Unicase:wght@500;700&family=Marck+Script&family=Press+Start+2P&family=UnifrakturMaguntia&family=Cinzel:wght@700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0f172a;color:#f1f5f9;font-family:Arial,sans-serif}
+.font-gothic{font-family:'UnifrakturMaguntia',cursive}.font-slavic{font-family:'Cormorant Unicase',serif}
+.font-handwrite{font-family:'Marck Script',cursive}.font-pixel{font-family:'Press Start 2P',monospace}.font-cinzel{font-family:'Cinzel',serif}
+.canvas{position:relative;flex:none;overflow:hidden;box-shadow:0 20px 25px #0008;user-select:none;background-color:#f4ecd8;background-image:radial-gradient(#e2d3b4 2px,transparent 2px);background-size:16px 16px}
+.bg-preset-darkmagic{background:linear-gradient(135deg,#1a102f,#05020a)}.bg-preset-scifi{background:#0d1117;border:2px solid #30363d}
+.bg-preset-royal{background:linear-gradient(135deg,#2b0c0c,#4a1515 50%,#1a0505)}
+.draggable{position:absolute;cursor:move;touch-action:none;white-space:pre-wrap;max-width:95%;overflow-wrap:anywhere}
+.draggable.active{outline:2px dashed #eab308;outline-offset:4px}
+.panel{background:#1e293b;border:1px solid #334155;border-radius:9px;padding:14px}
+input,select,button{font:inherit}input[type=text],input[type=number],select{background:#0f172a;color:#f1f5f9;border:1px solid #475569;border-radius:5px;padding:6px;min-width:0}
+button{cursor:pointer;border-radius:5px;padding:7px 10px}
+@media(max-width:900px){#workspace{flex-direction:column!important}aside{width:100%!important;max-height:none!important}main{min-height:500px}}
+</style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
-
-    <!-- Хедер / Панель управления -->
-    <header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex flex-wrap justify-between items-center gap-4 sticky top-0 z-50">
-        <div class="flex items-center gap-3">
-            <span class="text-2xl">📜</span>
-            <h1 class="text-xl font-bold bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
-                RPG Certificate Editor
-            </h1>
-        </div>
-        
-        <div class="flex items-center flex-wrap gap-2">
-            <!-- Пресеты грамот -->
-            <select id="templatePreset" onchange="applyPreset(this.value)" class="bg-slate-700 text-sm px-3 py-2 rounded border border-slate-600 focus:outline-none focus:border-amber-500">
-                <option value="">-- Быстрые пресеты --</option>
-                <option value="hogwarts">🧙‍♂️ Школа Магии</option>
-                <option value="military">⚔️ Военный Указ</option>
-                <option value="scifi">🚀 Лицензия Пилота</option>
-                <option value="guild">🛡️ Свидетельство Гильдии</option>
-            </select>
-
-            <!-- Supabase кнопки -->
-            <button onclick="openSupabaseModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded text-sm flex items-center gap-1 transition">
-                ⚙️ Supabase
-            </button>
-            <button onclick="saveToSupabase()" class="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-2 rounded text-sm flex items-center gap-1 transition">
-                ☁️ Сохранить в облако
-            </button>
-            <button onclick="loadFromSupabase()" class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-2 rounded text-sm flex items-center gap-1 transition">
-                📂 Загрузить из облака
-            </button>
-
-            <!-- Скачать PNG -->
-            <button onclick="exportPNG()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded text-sm flex items-center gap-1 transition shadow-lg">
-                💾 Скачать PNG
-            </button>
-        </div>
-    </header>
-
-    <!-- Основной интерфейс -->
-    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        
-        <!-- Сайдбар настроек (Слева) -->
-        <aside class="w-full lg:w-96 bg-slate-800/90 border-r border-slate-700 p-5 overflow-y-auto max-h-[40vh] lg:max-h-none flex flex-col gap-6">
-            
-            <!-- 1. Настройка фона и формата -->
-            <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700/50">
-                <h3 class="font-semibold text-amber-400 mb-3 flex items-center gap-2">🖼️ 1. Фон и Формат</h3>
-                
-                <div class="space-y-3">
-                    <div>
-                        <label class="text-xs text-slate-400 mb-1 block">Загрузить свой фон с ПК:</label>
-                        <input type="file" id="bgUploader" accept="image/*" onchange="handleBgUpload(event)" class="text-xs text-slate-300 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-amber-500/20 file:text-amber-400 hover:file:bg-amber-500/30 cursor-pointer w-full">
-                    </div>
-
-                    <div>
-                        <label class="text-xs text-slate-400 mb-1 block">Или выберите готовую тему:</label>
-                        <div class="grid grid-cols-2 gap-2 text-xs">
-                            <button onclick="setPresetBg('bg-preset-parchment')" class="p-2 rounded bg-amber-100 text-slate-900 font-bold border hover:border-amber-500">Пергамент</button>
-                            <button onclick="setPresetBg('bg-preset-darkmagic')" class="p-2 rounded bg-purple-950 text-purple-200 border border-purple-800 hover:border-purple-500">Темная магия</button>
-                            <button onclick="setPresetBg('bg-preset-scifi')" class="p-2 rounded bg-slate-900 text-cyan-400 border border-cyan-800 hover:border-cyan-500">Sci-Fi</button>
-                            <button onclick="setPresetBg('bg-preset-royal')" class="p-2 rounded bg-red-950 text-amber-300 border border-red-800 hover:border-amber-500">Королевский</button>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2 pt-2">
-                        <div>
-                            <label class="text-xs text-slate-400 mb-1 block">Ориентация:</label>
-                            <select id="aspectRatio" onchange="changeFormat()" class="w-full bg-slate-800 border border-slate-600 text-xs p-2 rounded">
-                                <option value="a4-landscape">A4 Альбомный</option>
-                                <option value="a4-portrait">A4 Книжный</option>
-                                <option value="square">Квадрат (1:1)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="text-xs text-slate-400 mb-1 block">Затенение фона:</label>
-                            <input type="range" id="bgOverlay" min="0" max="0.8" step="0.05" value="0" oninput="updateOverlay(this.value)" class="w-full">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2. Управление текстом -->
-            <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700/50">
-                <div class="flex justify-between items-center mb-3">
-                    <h3 class="font-semibold text-amber-400 flex items-center gap-2">✍️ 2. Текстовые элементы</h3>
-                    <button onclick="addText()" class="text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 px-2 py-1 rounded">+ Текст</button>
-                </div>
-                
-                <div id="textControlsList" class="space-y-3 max-h-48 overflow-y-auto pr-1">
-                    <!-- Сда динамически генерируются контроллеры для текстов -->
-                </div>
-            </div>
-
-            <!-- 3. Печати и гербы -->
-            <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700/50">
-                <h3 class="font-semibold text-amber-400 mb-3 flex items-center gap-2">🛡️ 3. Печать / Герб</h3>
-                
-                <div class="space-y-3">
-                    <div>
-                        <label class="text-xs text-slate-400 mb-1 block">Загрузить свою печать (PNG):</label>
-                        <input type="file" id="sealUploader" accept="image/*" onchange="handleSealUpload(event)" class="text-xs text-slate-300 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-amber-500/20 file:text-amber-400 hover:file:bg-amber-500/30 cursor-pointer w-full">
-                    </div>
-
-                    <div>
-                        <label class="text-xs text-slate-400 mb-1 block">Встроенные печати:</label>
-                        <div class="flex gap-2">
-                            <button onclick="setBuiltInSeal('wax')" class="flex-1 py-1 text-xs bg-red-900/40 border border-red-700 hover:bg-red-900/60 rounded">Красный Воск</button>
-                            <button onclick="setBuiltInSeal('gold')" class="flex-1 py-1 text-xs bg-amber-900/40 border border-amber-700 hover:bg-amber-900/60 rounded">Золото</button>
-                            <button onclick="setBuiltInSeal('arcane')" class="flex-1 py-1 text-xs bg-purple-900/40 border border-purple-700 hover:bg-purple-900/60 rounded">Магия</button>
-                        </div>
-                    </div>
-
-                    <div id="sealAdjustments" class="space-y-2 pt-2 hidden">
-                        <div>
-                            <label class="text-xs text-slate-400 flex justify-between">
-                                <span>Размер печати:</span>
-                                <span id="sealSizeVal">120px</span>
-                            </label>
-                            <input type="range" min="50" max="300" value="120" oninput="updateSealSize(this.value)" class="w-full">
-                        </div>
-                        <div>
-                            <label class="text-xs text-slate-400 flex justify-between">
-                                <span>Поворот:</span>
-                                <span id="sealRotateVal">0°</span>
-                            </label>
-                            <input type="range" min="-180" max="180" value="0" oninput="updateSealRotate(this.value)" class="w-full">
-                        </div>
-                        <button onclick="removeSeal()" class="w-full py-1 text-xs text-red-400 hover:text-red-300 bg-red-950/40 border border-red-900 rounded">Удалить печать</button>
-                    </div>
-                </div>
-            </div>
-
-        </aside>
-
-        <!-- Рабочая область / Холст грамоты (Справа) -->
-        <main class="flex-1 bg-slate-950 p-4 lg:p-8 flex items-center justify-center overflow-auto relative">
-            
-            <div id="certificateContainer" class="canvas-container relative bg-preset-parchment rounded-sm transition-all duration-300 overflow-hidden" style="width: 800px; height: 565px;">
-                
-                <!-- Оверлей затенения -->
-                <div id="darkOverlay" class="absolute inset-0 bg-black pointer-events-none transition-opacity duration-200" style="opacity: 0;"></div>
-
-                <!-- Контейнер для загруженного фона -->
-                <div id="bgImageHolder" class="absolute inset-0 bg-cover bg-center pointer-events-none"></div>
-
-                <!-- Слои элементов (Тексты и Печати) -->
-                <div id="layersContainer" class="absolute inset-0 p-8">
-                    <!-- Заполняется динамически из JS -->
-                </div>
-
-            </div>
-
-        </main>
-    </div>
-
-    <!-- Модальное окно подключения Supabase -->
-    <div id="supabaseModal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4">
-            <div class="flex justify-between items-center">
-                <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2">⚙️ Настройка Supabase</h3>
-                <button onclick="closeSupabaseModal()" class="text-slate-400 hover:text-white">✕</button>
-            </div>
-            
-            <p class="text-xs text-slate-300 leading-relaxed">
-                Введите параметры вашего проекта Supabase. Данные будут сохранены локально в вашем браузере.
-            </p>
-
-            <div class="space-y-3">
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Project URL:</label>
-                    <input type="text" id="sbUrl" placeholder="https://xxxx.supabase.co" class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Anon / Public Key:</label>
-                    <input type="password" id="sbKey" placeholder="eyJhbGciOiJIUzI1Ni..." class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                </div>
-            </div>
-
-            <div class="bg-slate-900/80 p-3 rounded text-[10px] font-mono text-slate-400 space-y-1">
-                <p class="text-amber-500 font-semibold">Важно! В Supabase должна быть создана таблица:</p>
-                <p class="text-slate-300 font-bold">Имя таблицы: certificates</p>
-                <p>Колонки: <code class="text-cyan-400">id</code> (int8, primary key), <code class="text-cyan-400">title</code> (text), <code class="text-cyan-400">data</code> (jsonb), <code class="text-cyan-400">created_at</code> (timestamptz)</p>
-            </div>
-
-            <div class="flex gap-2 justify-end pt-2">
-                <button onclick="closeSupabaseModal()" class="px-4 py-2 text-xs bg-slate-700 hover:bg-slate-600 rounded">Отмена</button>
-                <button onclick="saveSupabaseCredentials()" class="px-4 py-2 text-xs bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded">Сохранить ключи</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Модальное окно загрузки из Supabase -->
-    <div id="loadModal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-lg shadow-2xl space-y-4">
-            <div class="flex justify-between items-center">
-                <h3 class="text-lg font-bold text-cyan-400 flex items-center gap-2">📂 Сохраненные грамоты в Supabase</h3>
-                <button onclick="closeLoadModal()" class="text-slate-400 hover:text-white">✕</button>
-            </div>
-
-            <div id="supabaseItemsList" class="max-h-60 overflow-y-auto space-y-2 pr-1">
-                <div class="text-center py-6 text-slate-400 text-sm">Загрузка...</div>
-            </div>
-
-            <div class="flex justify-end pt-2">
-                <button onclick="closeLoadModal()" class="px-4 py-2 text-xs bg-slate-700 hover:bg-slate-600 rounded">Закрыть</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Скрипт приложения -->
-    <script>
-        // Инициализация состояния
-        let appState = {
-            format: 'a4-landscape',
-            bgPreset: 'bg-preset-parchment',
-            customBgUrl: null,
-            overlayOpacity: 0,
-            elements: [
-                { id: 'el-1', type: 'text', content: 'УКАЗ И НАГРАДА', font: 'font-slavic', size: 36, color: '#4a1515', x: 250, y: 40, weight: 'bold', align: 'center' },
-                { id: 'el-2', type: 'text', content: 'Настоящим подтверждается, что храбрый воин', font: 'font-handwrite', size: 22, color: '#2b0c0c', x: 180, y: 120, weight: 'normal', align: 'center' },
-                { id: 'el-3', type: 'text', content: 'РИЧАРД ЛЕОНОР', font: 'font-gothic', size: 48, color: '#851414', x: 220, y: 180, weight: 'bold', align: 'center' },
-                { id: 'el-4', type: 'text', content: 'проявил нечеловеческую отвагу при защите Цитадели от полчищ скверны и награждается Высшим Орденом Короны.', font: 'font-slavic', size: 18, color: '#1a0505', x: 100, y: 270, weight: 'normal', align: 'center' }
-            ],
-            seal: {
-                visible: true,
-                type: 'wax',
-                customUrl: null,
-                x: 620,
-                y: 380,
-                size: 130,
-                rotate: -12
-            }
-        };
-
-        let activeElementId = null;
-        let supabaseClient = null;
-
-        // Встроенные SVG-печати
-        const builtInSeals = {
-            wax: `<svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md"><circle cx="50" cy="50" r="45" fill="#851414" stroke="#4a0808" stroke-width="4"/><circle cx="50" cy="50" r="38" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4 2"/><path d="M50 20 L58 38 L78 38 L62 50 L68 68 L50 56 L32 68 L38 50 L22 38 L42 38 Z" fill="#f59e0b"/></svg>`,
-            gold: `<svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md"><circle cx="50" cy="50" r="46" fill="#d97706" stroke="#78350f" stroke-width="3"/><circle cx="50" cy="50" r="40" fill="#f59e0b" stroke="#b45309" stroke-width="2"/><circle cx="50" cy="50" r="32" fill="none" stroke="#78350f" stroke-width="2"/><text x="50" y="58" font-size="26" font-weight="bold" fill="#78350f" text-anchor="middle">👑</text></svg>`,
-            arcane: `<svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md"><circle cx="50" cy="50" r="45" fill="#4c1d95" stroke="#2e1065" stroke-width="4"/><polygon points="50,15 80,75 20,75" fill="none" stroke="#a855f7" stroke-width="2"/><polygon points="50,85 80,25 20,25" fill="none" stroke="#a855f7" stroke-width="2"/><circle cx="50" cy="50" r="12" fill="#c084fc"/></svg>`
-        };
-
-        // Запуск при загрузке
-        window.addEventListener('DOMContentLoaded', () => {
-            initSupabaseFromStorage();
-            renderApp();
-            initDragAndDrop();
-        });
-
-        // Инициализация Supabase из localStorage
-        function initSupabaseFromStorage() {
-            const url = localStorage.getItem('sb_url');
-            const key = localStorage.getItem('sb_key');
-            if (url && key && window.supabase) {
-                supabaseClient = window.supabase.createClient(url, key);
-            }
-        }
-
-        // Рендер всего интерфейса и холста
-        function renderApp() {
-            renderCanvas();
-            renderControls();
-        }
-
-        function renderCanvas() {
-            const container = document.getElementById('certificateContainer');
-            const bgHolder = document.getElementById('bgImageHolder');
-            const layers = document.getElementById('layersContainer');
-            const darkOverlay = document.getElementById('darkOverlay');
-
-            // Установка размеров
-            if (appState.format === 'a4-landscape') {
-                container.style.width = '800px';
-                container.style.height = '565px';
-            } else if (appState.format === 'a4-portrait') {
-                container.style.width = '565px';
-                container.style.height = '800px';
-            } else if (appState.format === 'square') {
-                container.style.width = '600px';
-                container.style.height = '600px';
-            }
-
-            // Затенение
-            darkOverlay.style.opacity = appState.overlayOpacity;
-
-            // Фон
-            container.className = `canvas-container relative rounded-sm transition-all duration-300 overflow-hidden ${appState.customBgUrl ? '' : appState.bgPreset}`;
-            if (appState.customBgUrl) {
-                bgHolder.style.backgroundImage = `url('${appState.customBgUrl}')`;
-            } else {
-                bgHolder.style.backgroundImage = 'none';
-            }
-
-            // Рендер слоев
-            layers.innerHTML = '';
-
-            // 1. Тексты
-            appState.elements.forEach(el => {
-                const txtDiv = document.createElement('div');
-                txtDiv.id = el.id;
-                txtDiv.className = `draggable ${el.font} ${activeElementId === el.id ? 'active' : ''}`;
-                txtDiv.style.left = `${el.x}px`;
-                txtDiv.style.top = `${el.y}px`;
-                txtDiv.style.fontSize = `${el.size}px`;
-                txtDiv.style.color = el.color;
-                txtDiv.style.fontWeight = el.weight || 'normal';
-                txtDiv.style.textAlign = el.align || 'left';
-                txtDiv.innerText = el.content;
-
-                txtDiv.addEventListener('mousedown', (e) => selectElement(el.id, e));
-                layers.appendChild(txtDiv);
-            });
-
-            // 2. Печать
-            if (appState.seal.visible) {
-                const sealDiv = document.createElement('div');
-                sealDiv.id = 'seal-element';
-                sealDiv.className = `draggable ${activeElementId === 'seal-element' ? 'active' : ''}`;
-                sealDiv.style.left = `${appState.seal.x}px`;
-                sealDiv.style.top = `${appState.seal.y}px`;
-                sealDiv.style.width = `${appState.seal.size}px`;
-                sealDiv.style.height = `${appState.seal.size}px`;
-                sealDiv.style.transform = `rotate(${appState.seal.rotate}deg)`;
-
-                if (appState.seal.customUrl) {
-                    sealDiv.innerHTML = `<img src="${appState.seal.customUrl}" class="w-full h-full object-contain pointer-events-none" />`;
-                } else if (builtInSeals[appState.seal.type]) {
-                    sealDiv.innerHTML = builtInSeals[appState.seal.type];
-                }
-
-                sealDiv.addEventListener('mousedown', (e) => selectElement('seal-element', e));
-                layers.appendChild(sealDiv);
-            }
-        }
-
-        // Рендер контроллеров в сайдбаре
-        function renderControls() {
-            const list = document.getElementById('textControlsList');
-            list.innerHTML = '';
-
-            appState.elements.forEach((el, index) => {
-                const item = document.createElement('div');
-                item.className = `p-3 rounded border text-xs space-y-2 ${activeElementId === el.id ? 'bg-amber-950/30 border-amber-500/50' : 'bg-slate-800 border-slate-700'}`;
-                
-                item.innerHTML = `
-                    <div class="flex justify-between items-center gap-2">
-                        <span class="font-bold text-slate-400">#${index + 1}</span>
-                        <input type="text" value="${escapeHtml(el.content)}" oninput="updateTextProp('${el.id}', 'content', this.value)" class="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200">
-                        <button onclick="removeText('${el.id}')" class="text-red-400 hover:text-red-300">✕</button>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <select onchange="updateTextProp('${el.id}', 'font', this.value)" class="bg-slate-900 border border-slate-700 rounded p-1">
-                            <option value="font-slavic" ${el.font === 'font-slavic' ? 'selected' : ''}>Славянский/Древний</option>
-                            <option value="font-gothic" ${el.font === 'font-gothic' ? 'selected' : ''}>Готика</option>
-                            <option value="font-handwrite" ${el.font === 'font-handwrite' ? 'selected' : ''}>Рукописный</option>
-                            <option value="font-cinzel" ${el.font === 'font-cinzel' ? 'selected' : ''}>Строгий/Антиква</option>
-                            <option value="font-pixel" ${el.font === 'font-pixel' ? 'selected' : ''}>Пиксельный</option>
-                        </select>
-
-                        <div class="flex items-center gap-1">
-                            <input type="number" min="10" max="120" value="${el.size}" onchange="updateTextProp('${el.id}', 'size', parseInt(this.value))" class="w-full bg-slate-900 border border-slate-700 rounded p-1">
-                            <input type="color" value="${el.color}" onchange="updateTextProp('${el.id}', 'color', this.value)" class="w-8 h-6 bg-transparent cursor-pointer">
-                        </div>
-                    </div>
-                `;
-                list.appendChild(item);
-            });
-
-            // Настройки печати
-            const sealAdj = document.getElementById('sealAdjustments');
-            if (appState.seal.visible) {
-                sealAdj.classList.remove('hidden');
-                document.getElementById('sealSizeVal').innerText = `${appState.seal.size}px`;
-                document.getElementById('sealRotateVal').innerText = `${appState.seal.rotate}°`;
-            } else {
-                sealAdj.classList.add('hidden');
-            }
-        }
-
-        // Выбор элемента
-        function selectElement(id, e) {
-            if (e) e.stopPropagation();
-            activeElementId = id;
-            renderApp();
-        }
-
-        // Драг-энд-Дроп логика
-        let isDragging = false;
-        let dragOffsetX = 0;
-        let dragOffsetY = 0;
-
-        function initDragAndDrop() {
-            document.addEventListener('mousedown', (e) => {
-                const target = e.target.closest('.draggable');
-                if (!target) {
-                    activeElementId = null;
-                    renderApp();
-                    return;
-                }
-
-                isDragging = true;
-                activeElementId = target.id;
-                
-                const rect = target.getBoundingClientRect();
-                dragOffsetX = e.clientX - rect.left;
-                dragOffsetY = e.clientY - rect.top;
-
-                renderApp();
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging || !activeElementId) return;
-
-                const container = document.getElementById('certificateContainer').getBoundingClientRect();
-                const x = e.clientX - container.left - dragOffsetX;
-                const y = e.clientY - container.top - dragOffsetY;
-
-                if (activeElementId === 'seal-element') {
-                    appState.seal.x = Math.round(x);
-                    appState.seal.y = Math.round(y);
-                } else {
-                    const el = appState.elements.find(item => item.id === activeElementId);
-                    if (el) {
-                        el.x = Math.round(x);
-                        el.y = Math.round(y);
-                    }
-                }
-
-                const draggedDom = document.getElementById(activeElementId);
-                if (draggedDom) {
-                    draggedDom.style.left = `${x}px`;
-                    draggedDom.style.top = `${y}px`;
-                }
-            });
-
-            document.addEventListener('mouseup', () => {
-                if (isDragging) {
-                    isDragging = false;
-                    renderControls();
-                }
-            });
-        }
-
-        // Изменение параметров текста
-        function updateTextProp(id, prop, val) {
-            const el = appState.elements.find(item => item.id === id);
-            if (el) {
-                el[prop] = val;
-                renderApp();
-            }
-        }
-
-        function addText() {
-            const newId = `el-${Date.now()}`;
-            appState.elements.push({
-                id: newId,
-                type: 'text',
-                content: 'Новый Текст',
-                font: 'font-slavic',
-                size: 24,
-                color: '#000000',
-                x: 150,
-                y: 150,
-                weight: 'normal',
-                align: 'left'
-            });
-            activeElementId = newId;
-            renderApp();
-        }
-
-        function removeText(id) {
-            appState.elements = appState.elements.filter(el => el.id !== id);
-            if (activeElementId === id) activeElementId = null;
-            renderApp();
-        }
-
-        // Загрузка фонов
-        function handleBgUpload(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (evt) => {
-                    appState.customBgUrl = evt.target.result;
-                    renderApp();
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function setPresetBg(presetName) {
-            appState.customBgUrl = null;
-            appState.bgPreset = presetName;
-            renderApp();
-        }
-
-        function changeFormat() {
-            appState.format = document.getElementById('aspectRatio').value;
-            renderApp();
-        }
-
-        function updateOverlay(val) {
-            appState.overlayOpacity = parseFloat(val);
-            renderApp();
-        }
-
-        // Загрузка печатей
-        function handleSealUpload(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (evt) => {
-                    appState.seal.visible = true;
-                    appState.seal.customUrl = evt.target.result;
-                    renderApp();
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function setBuiltInSeal(type) {
-            appState.seal.visible = true;
-            appState.seal.customUrl = null;
-            appState.seal.type = type;
-            renderApp();
-        }
-
-        function updateSealSize(val) {
-            appState.seal.size = parseInt(val);
-            renderApp();
-        }
-
-        function updateSealRotate(val) {
-            appState.seal.rotate = parseInt(val);
-            renderApp();
-        }
-
-        function removeSeal() {
-            appState.seal.visible = false;
-            renderApp();
-        }
-
-        // Готовые пресеты грамот
-        function applyPreset(presetKey) {
-            if (!presetKey) return;
-
-            if (presetKey === 'hogwarts') {
-                appState.bgPreset = 'bg-preset-parchment';
-                appState.customBgUrl = null;
-                appState.elements = [
-                    { id: 'el-1', type: 'text', content: 'ШКОЛА МАГИИ И ВОЛШЕБСТВА', font: 'font-gothic', size: 32, color: '#2b0c0c', x: 180, y: 50 },
-                    { id: 'el-2', type: 'text', content: 'Свидетельствует о том, что юный маг', font: 'font-handwrite', size: 20, color: '#4a1515', x: 220, y: 130 },
-                    { id: 'el-3', type: 'text', content: 'АЛЕКСАНДР БЛЕК', font: 'font-slavic', size: 40, color: '#851414', x: 230, y: 190 },
-                    { id: 'el-4', type: 'text', content: 'успешно сдал экзамены по дисциплине «Защита от Темных Искусств».', font: 'font-handwrite', size: 22, color: '#1a0505', x: 120, y: 280 }
-                ];
-                appState.seal = { visible: true, type: 'wax', customUrl: null, x: 600, y: 360, size: 140, rotate: -15 };
-            } else if (presetKey === 'military') {
-                appState.bgPreset = 'bg-preset-royal';
-                appState.customBgUrl = null;
-                appState.elements = [
-                    { id: 'el-1', type: 'text', content: 'БОЕВОЙ УКАЗ №404', font: 'font-cinzel', size: 36, color: '#f59e0b', x: 230, y: 50 },
-                    { id: 'el-2', type: 'text', content: 'За проявленное мужество и отвагу в бою', font: 'font-slavic', size: 20, color: '#e2e8f0', x: 200, y: 140 },
-                    { id: 'el-3', type: 'text', content: 'КАПИТАН ВАЛЕНТАЙН', font: 'font-cinzel', size: 38, color: '#ef4444', x: 180, y: 210 }
-                ];
-                appState.seal = { visible: true, type: 'gold', customUrl: null, x: 600, y: 350, size: 130, rotate: 0 };
-            } else if (presetKey === 'scifi') {
-                appState.bgPreset = 'bg-preset-scifi';
-                appState.customBgUrl = null;
-                appState.elements = [
-                    { id: 'el-1', type: 'text', content: 'PILOT LICENSE // SECTOR 7', font: 'font-pixel', size: 20, color: '#22d3ee', x: 150, y: 60 },
-                    { id: 'el-2', type: 'text', content: 'ID: #8940-EX-ORION', font: 'font-pixel', size: 14, color: '#a855f7', x: 240, y: 140 },
-                    { id: 'el-3', type: 'text', content: 'COMMANDER Shepard', font: 'font-cinzel', size: 32, color: '#ffffff', x: 200, y: 220 }
-                ];
-                appState.seal = { visible: true, type: 'arcane', customUrl: null, x: 600, y: 350, size: 120, rotate: 0 };
-            }
-
-            renderApp();
-        }
-
-        // Экспорт в PNG
-        function exportPNG() {
-            const container = document.getElementById('certificateContainer');
-            activeElementId = null;
-            renderApp();
-
-            setTimeout(() => {
-                html2canvas(container, {
-                    scale: 2,
-                    useCORS: true,
-                    backgroundColor: null
-                }).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = `certificate_${Date.now()}.png`;
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                });
-            }, 100);
-        }
-
-        // Supabase Интеграция
-        function openSupabaseModal() {
-            document.getElementById('sbUrl').value = localStorage.getItem('sb_url') || '';
-            document.getElementById('sbKey').value = localStorage.getItem('sb_key') || '';
-            document.getElementById('supabaseModal').classList.remove('hidden');
-        }
-
-        function closeSupabaseModal() {
-            document.getElementById('supabaseModal').classList.add('hidden');
-        }
-
-        function saveSupabaseCredentials() {
-            const url = document.getElementById('sbUrl').value.trim();
-            const key = document.getElementById('sbKey').value.trim();
-
-            if (!url || !key) {
-                alert('Пожалуйста, заполните оба поля URL и Key.');
-                return;
-            }
-
-            localStorage.setItem('sb_url', url);
-            localStorage.setItem('sb_key', key);
-            initSupabaseFromStorage();
-            closeSupabaseModal();
-            alert('Ключи Supabase успешно сохранены!');
-        }
-
-        // Сохранение шаблонов в Supabase
-        async function saveToSupabase() {
-            if (!supabaseClient) {
-                alert('Сначала настройте подключение к Supabase (кнопка ⚙️ Supabase).');
-                openSupabaseModal();
-                return;
-            }
-
-            const title = prompt('Введите название шаблона:', 'Грамота для ролевой');
-            if (!title) return;
-
-            try {
-                const { data, error } = await supabaseClient
-                    .from('certificates')
-                    .insert([{ title: title, data: appState }])
-                    .select();
-
-                if (error) throw error;
-
-                alert('Шаблон успешно сохранен в Supabase!');
-            } catch (err) {
-                console.error(err);
-                alert(`Ошибка сохранения: ${err.message || 'Проверьте структуру таблицы certificates'}`);
-            }
-        }
-
-        // Загрузка списка сохраненных грамот
-        async function loadFromSupabase() {
-            if (!supabaseClient) {
-                alert('Сначала настройте подключение к Supabase (кнопка ⚙️ Supabase).');
-                openSupabaseModal();
-                return;
-            }
-
-            const modal = document.getElementById('loadModal');
-            const listContainer = document.getElementById('supabaseItemsList');
-            modal.classList.remove('hidden');
-            listContainer.innerHTML = '<div class="text-center py-6 text-slate-400 text-sm">Загрузка данных из облака...</div>';
-
-            try {
-                const { data, error } = await supabaseClient
-                    .from('certificates')
-                    .select('id, title, created_at, data')
-                    .order('created_at', { ascending: false });
-
-                if (error) throw error;
-
-                if (!data || data.length === 0) {
-                    listContainer.innerHTML = '<div class="text-center py-6 text-slate-400 text-sm">В базе нет сохраненных грамот.</div>';
-                    return;
-                }
-
-                listContainer.innerHTML = '';
-                data.forEach(item => {
-                    const row = document.createElement('div');
-                    row.className = 'flex justify-between items-center p-3 bg-slate-900 border border-slate-700 rounded text-sm hover:border-cyan-500/50 transition';
-                    const dateStr = new Date(item.created_at).toLocaleString('ru-RU');
-                    
-                    row.innerHTML = `
-                        <div>
-                            <div class="font-bold text-slate-200">${escapeHtml(item.title)}</div>
-                            <div class="text-[10px] text-slate-400">${dateStr}</div>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="applySupabaseItem(${item.id})" class="px-3 py-1 bg-cyan-600 hover:bg-cyan-700 text-white rounded text-xs font-semibold">Открыть</button>
-                            <button onclick="deleteSupabaseItem(${item.id})" class="px-2 py-1 bg-red-950 hover:bg-red-900 text-red-400 rounded text-xs">✕</button>
-                        </div>
-                    `;
-                    listContainer.appendChild(row);
-                });
-
-                window._cachedSupabaseData = data;
-            } catch (err) {
-                console.error(err);
-                listContainer.innerHTML = `<div class="text-center py-6 text-red-400 text-sm">Ошибка загрузки: ${escapeHtml(err.message)}</div>`;
-            }
-        }
-
-        function closeLoadModal() {
-            document.getElementById('loadModal').classList.add('hidden');
-        }
-
-        function applySupabaseItem(id) {
-            const item = (window._cachedSupabaseData || []).find(i => i.id === id);
-            if (item && item.data) {
-                appState = item.data;
-                renderApp();
-                closeLoadModal();
-            }
-        }
-
-        async function deleteSupabaseItem(id) {
-            if (!confirm('Вы уверены, что хотите удалить этот шаблон?')) return;
-
-            try {
-                const { error } = await supabaseClient
-                    .from('certificates')
-                    .delete()
-                    .eq('id', id);
-
-                if (error) throw error;
-
-                loadFromSupabase();
-            } catch (err) {
-                alert(`Ошибка удаления: ${err.message}`);
-            }
-        }
-
-        // Безопасное экранирование HTML
-        function escapeHtml(str) {
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
-        }
-    </script>
-</body>
-</html>
+<body>
+<header style="background:#1e293b;border-bottom:1px solid #334155;padding:12px 18px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;position:sticky;top:0;z-index:5">
+<strong style="font-size:20px;color:#fbbf24">📜 RPG Certificate Editor</strong>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<select id="templatePreset" onchange="applyPreset(this.value)">
+<option value="">— Быстрые пресеты —</option><option value="hogwarts">🧙 Школа Магии</option><option value="military">⚔ Военный Указ</option><option value="scifi">🚀 Лицензия Пилота</option><option value="guild">🛡 Свидетельство Гильдии</option>
+</select>
+<button style="background:#d97706;color:#111827;font-weight:bold" onclick="exportPNG()">💾 Скачать PNG</button>
+<button style="background:#4338ca" onclick="openSupabaseModal()">⚙️ Supabase</button>
+<button style="background:#0891b2" onclick="saveToSupabase()">☁️ Сохранить</button>
+<button style="background:#0f766e" onclick="loadFromSupabase()">📂 Загрузить</button>
+</div></header>
+
+<div id="workspace" style="display:flex;min-height:calc(100vh - 60px)">
+<aside style="width:370px;flex:none;background:#1e293b;border-right:1px solid #334155;padding:16px;display:flex;flex-direction:column;gap:14px;overflow:auto">
+<section class="panel">
+<h3 style="color:#fbbf24;margin:0 0 12px">🖼️ 1. Фон и формат</h3>
+<label style="display:block;font-size:12px;color:#cbd5e1;margin-bottom:5px">Загрузить фон</label><input type="file" id="bgUploader" accept="image/*" onchange="handleBgUpload(event)" style="width:100%;font-size:12px">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px">
+<button style="background:#fef3c7;color:#111827" onclick="setPresetBg('parchment')">Пергамент</button>
+<button style="background:#3b0764;color:#e9d5ff" onclick="setPresetBg('darkmagic')">Тёмная магия</button>
+<button style="background:#0f172a;color:#67e8f9" onclick="setPresetBg('scifi')">Sci-Fi</button>
+<button style="background:#450a0a;color:#fde68a" onclick="setPresetBg('royal')">Королевский</button>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+<label style="font-size:12px">Формат<select id="aspectRatio" onchange="changeFormat()" style="width:100%;margin-top:4px"><option value="landscape">A4 альбомный</option><option value="portrait">A4 книжный</option><option value="square">Квадрат</option></select></label>
+<label style="font-size:12px">Затенение<input type="range" id="bgOverlay" min="0" max=".8" step=".05" value="0" oninput="updateOverlay(this.value)" style="width:100%;margin-top:8px"></label>
+</div></section>
+
+<section class="panel">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="color:#fbbf24;margin:0">✍️ 2. Текстовые элементы</h3><button style="background:#92400e" onclick="addText()">+ Текст</button></div>
+<div id="textControlsList" style="display:flex;flex-direction:column;gap:10px;max-height:48vh;overflow:auto"></div>
+</section>
+
+<section class="panel">
+<h3 style="color:#fbbf24;margin:0 0 10px">🛡️ 3. Печать / герб</h3>
+<label style="font-size:12px;color:#cbd5e1">Загрузить изображение печати</label><input type="file" id="sealUploader" accept="image/*" onchange="handleSealUpload(event)" style="width:100%;font-size:12px;margin:6px 0 10px">
+<div style="display:flex;gap:6px"><button style="background:#7f1d1d" onclick="setBuiltInSeal('wax')">Красный воск</button><button style="background:#92400e" onclick="setBuiltInSeal('gold')">Золото</button><button style="background:#581c87" onclick="setBuiltInSeal('arcane')">Магия</button></div>
+<div id="sealAdjustments" style="margin-top:12px">
+<label style="display:block;font-size:12px">Размер <span id="sealSizeVal">130px</span><input type="range" min="50" max="300" value="130" oninput="updateSealSize(this.value)" style="width:100%"></label>
+<label style="display:block;font-size:12px;margin-top:8px">Поворот <span id="sealRotateVal">0°</span><input type="range" min="-180" max="180" value="0" oninput="updateSealRotate(this.value)" style="width:100%"></label>
+<button style="background:#7f1d1d;margin-top:8px" onclick="removeSeal()">Удалить печать</button>
+</div></section>
+</aside>
+
+<main style="flex:1;min-width:0;background:#020617;padding:24px;display:flex;justify-content:center;align-items:center;overflow:auto">
+<div id="certificateContainer" class="canvas" style="width:800px;height:565px">
+<div id="darkOverlay" style="position:absolute;inset:0;background:#000;opacity:0;pointer-events:none"></div>
+<div id="bgImageHolder" style="position:absolute;inset:0;background-size:cover;background-position:center;pointer-events:none"></div>
+<div id="layersContainer" style="position:absolute;inset:0"></div>
+</div></main></div>
+
+<div id="supabaseModal" style="display:none;position:fixed;inset:0;background:#000c;z-index:20;align-items:center;justify-content:center;padding:16px">
+<div class="panel" style="width:min(440px,100%);background:#1e293b">
+<h3 style="color:#fbbf24;margin-top:0">Настройка Supabase</h3>
+<p style="font-size:12px;color:#cbd5e1">Параметры сохраняются только в этом браузере. Нужна таблица certificates с колонками id (int8), title (text), data (jsonb), created_at (timestamptz).</p>
+<label style="font-size:12px">Project URL<input id="sbUrl" type="text" style="width:100%;margin:5px 0 10px" placeholder="https://xxxx.supabase.co"></label>
+<label style="font-size:12px">Anon / Public Key<input id="sbKey" type="password" style="width:100%;margin:5px 0 12px" placeholder="Public anon key"></label>
+<div style="display:flex;justify-content:flex-end;gap:8px"><button style="background:#475569" onclick="closeSupabaseModal()">Отмена</button><button style="background:#d97706;color:#111827" onclick="saveSupabaseCredentials()">Сохранить ключи</button></div>
+</div></div>
+<div id="loadModal" style="display:none;position:fixed;inset:0;background:#000c;z-index:21;align-items:center;justify-content:center;padding:16px">
+<div class="panel" style="width:min(520px,100%);background:#1e293b"><div style="display:flex;justify-content:space-between"><h3 style="margin-top:0;color:#67e8f9">Сохранённые грамоты</h3><button onclick="closeLoadModal()">✕</button></div><div id="supabaseItemsList"></div></div></div>
+
+<script>
+let appState={
+ format:'landscape',bgPreset:'parchment',customBgUrl:null,overlayOpacity:0,
+ elements:[
+  {id:'el-1',content:'УКАЗ И НАГРАДА',font:'font-slavic',size:36,color:'#4a1515',x:250,y:40,weight:'bold',align:'center'},
+  {id:'el-2',content:'Настоящим подтверждается, что храбрый воин',font:'font-handwrite',size:22,color:'#2b0c0c',x:180,y:120,weight:'normal',align:'center'},
+  {id:'el-3',content:'РИЧАРД ЛЕОНОР',font:'font-gothic',size:48,color:'#851414',x:220,y:180,weight:'bold',align:'center'},
+  {id:'el-4',content:'проявил нечеловеческую отвагу при защите Цитадели от полчищ скверны и награждается Высшим Орденом Короны.',font:'font-slavic',size:18,color:'#1a0505',x:100,y:270,weight:'normal',align:'center'}
+ ],
+ seal:{visible:true,type:'wax',customUrl:null,x:620,y:380,size:130,rotate:-12}
+};
+let activeElementId=null,supabaseClient=null,drag=null;
+const sealSVG={
+ wax:'<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#851414" stroke="#4a0808" stroke-width="4"/><circle cx="50" cy="50" r="38" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 2"/><path d="M50 20 L58 38 L78 38 L62 50 L68 68 L50 56 L32 68 L38 50 L22 38 L42 38 Z" fill="#f59e0b"/></svg>',
+ gold:'<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#d97706" stroke="#78350f" stroke-width="3"/><circle cx="50" cy="50" r="32" fill="none" stroke="#78350f" stroke-width="2"/><text x="50" y="60" font-size="32" text-anchor="middle" fill="#78350f">♛</text></svg>',
+ arcane:'<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#4c1d95" stroke="#2e1065" stroke-width="4"/><polygon points="50,15 80,75 20,75" fill="none" stroke="#c084fc" stroke-width="3"/><polygon points="50,85 80,25 20,25" fill="none" stroke="#c084fc" stroke-width="3"/><circle cx="50" cy="50" r="12" fill="#c084fc"/></svg>'
+};
+function $(id){return document.getElementById(id)}
+function renderApp(){renderCanvas();renderControls()}
+function renderCanvas(){
+ const c=$('certificateContainer'),layers=$('layersContainer');
+ const sizes={landscape:[800,565],portrait:[565,800],square:[600,600]};
+ c.style.width=sizes[appState.format][0]+'px';c.style.height=sizes[appState.format][1]+'px';
+ c.className='canvas'+(appState.customBgUrl?'':' bg-preset-'+appState.bgPreset);
+ $('darkOverlay').style.opacity=appState.overlayOpacity;
+ $('bgImageHolder').style.backgroundImage=appState.customBgUrl?`url("${appState.customBgUrl}")`:'none';
+ layers.innerHTML='';
+ appState.elements.forEach(el=>{
+  const d=document.createElement('div');d.id=el.id;d.className=`draggable ${el.font} ${activeElementId===el.id?'active':''}`;
+  Object.assign(d.style,{left:el.x+'px',top:el.y+'px',fontSize:el.size+'px',color:el.color,fontWeight:el.weight||'normal',textAlign:el.align||'left'});
+  d.textContent=el.content;layers.appendChild(d);
+ });
+ if(appState.seal.visible){
+  const d=document.createElement('div');d.id='seal-element';d.className='draggable '+(activeElementId==='seal-element'?'active':'');
+  Object.assign(d.style,{left:appState.seal.x+'px',top:appState.seal.y+'px',width:appState.seal.size+'px',height:appState.seal.size+'px',transform:`rotate(${appState.seal.rotate}deg)`});
+  if(appState.seal.customUrl){const img=document.createElement('img');img.src=appState.seal.customUrl;img.style.cssText='width:100%;height:100%;object-fit:contain;pointer-events:none';d.appendChild(img)}
+  else d.innerHTML=sealSVG[appState.seal.type]||sealSVG.wax;
+  d.querySelector('svg')?.setAttribute('style','width:100%;height:100%');layers.appendChild(d);
+ }
+}
+function renderControls(){
+ const list=$('textControlsList');list.innerHTML='';
+ appState.elements.forEach((el,i)=>{
+  const box=document.createElement('div');box.className='panel';box.style.padding='9px';box.style.borderColor=activeElementId===el.id?'#d97706':'#334155';
+  const title=document.createElement('div');title.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:7px';
+  const num=document.createElement('span');num.textContent='#'+(i+1);num.style.color='#94a3b8';num.style.fontSize='12px';
+  const input=document.createElement('input');input.type='text';input.value=el.content;input.style.flex='1';input.placeholder='Текст грамоты';
+  input.addEventListener('input',()=>{el.content=input.value;const canvasText=$(el.id);if(canvasText)canvasText.textContent=input.value});
+  const del=document.createElement('button');del.textContent='✕';del.style.background='#7f1d1d';del.onclick=()=>removeText(el.id);
+  title.append(num,input,del);box.append(title);
+  const row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:6px';
+  const font=document.createElement('select');[['font-slavic','Славянский'],['font-gothic','Готика'],['font-handwrite','Рукописный'],['font-cinzel','Антиква'],['font-pixel','Пиксельный']].forEach(([v,t])=>{let o=document.createElement('option');o.value=v;o.textContent=t;font.append(o)});font.value=el.font;font.onchange=()=>{el.font=font.value;renderCanvas()};
+  const size=document.createElement('input');size.type='number';size.min=8;size.max=160;size.value=el.size;size.onchange=()=>{el.size=Math.max(8,Math.min(160,Number(size.value)||8));renderCanvas()};
+  const color=document.createElement('input');color.type='color';color.value=el.color;color.style.width='100%';color.oninput=()=>{el.color=color.value;const d=$(el.id);if(d)d.style.color=color.value};
+  row.append(font,size,color);box.append(row);list.append(box);
+ });
+ $('sealAdjustments').style.display=appState.seal.visible?'block':'none';
+ $('sealSizeVal').textContent=appState.seal.size+'px';$('sealRotateVal').textContent=appState.seal.rotate+'°';
+}
+function addText(){const id='el-'+Date.now();appState.elements.push({id,content:'Новый текст',font:'font-slavic',size:24,color:'#000000',x:150,y:150,weight:'normal',align:'left'});activeElementId=id;renderApp()}
+function removeText(id){appState.elements=appState.elements.filter(e=>e.id!==id);if(activeElementId===id)activeElementId=null;renderApp()}
+function setPresetBg(p){appState.bgPreset=p;appState.customBgUrl=null;renderCanvas()}
+function handleBgUpload(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{appState.customBgUrl=r.result;renderCanvas()};r.readAsDataURL(f)}
+function changeFormat(){appState.format=$('aspectRatio').value;renderCanvas()}
+function updateOverlay(v){appState.overlayOpacity=Number(v);$('darkOverlay').style.opacity=v}
+function handleSealUpload(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{appState.seal.visible=true;appState.seal.customUrl=r.result;renderApp()};r.readAsDataURL(f)}
+function setBuiltInSeal(t){appState.seal.visible=true;appState.seal.type=t;appState.seal.customUrl=null;renderApp()}
+function updateSealSize(v){appState.seal.size=Number(v);const d=$('seal-element');if(d){d.style.width=v+'px';d.style.height=v+'px'}$('sealSizeVal').textContent=v+'px'}
+function updateSealRotate(v){appState.seal.rotate=Number(v);const d=$('seal-element');if(d)d.style.transform=`rotate(${v}deg)`;$('sealRotateVal').textContent=v+'°'}
+function removeSeal(){appState.seal.visible=false;renderApp()}
+function applyPreset(p){
+ if(!p)return;
+ const data={
+ hogwarts:{bg:'parchment',texts:[['ШКОЛА МАГИИ И ВОЛШЕБСТВА','font-gothic',32,'#2b0c0c',180,50],['Свидетельствует о том, что юный маг','font-handwrite',20,'#4a1515',220,130],['АЛЕКСАНДР БЛЕК','font-slavic',40,'#851414',230,190],['успешно сдал экзамены по дисциплине «Защита от Тёмных Искусств».','font-handwrite',22,'#1a0505',120,280]],seal:'wax'},
+ military:{bg:'royal',texts:[['БОЕВОЙ УКАЗ №404','font-cinzel',36,'#f59e0b',230,50],['За проявленное мужество и отвагу в бою','font-slavic',20,'#e2e8f0',200,140],['КАПИТАН ВАЛЕНТАЙН','font-cinzel',38,'#ef4444',180,210]],seal:'gold'},
+ scifi:{bg:'scifi',texts:[['PILOT LICENSE // SECTOR 7','font-pixel',20,'#22d3ee',150,60],['ID: #8940-EX-ORION','font-pixel',14,'#a855f7',240,140],['COMMANDER Shepard','font-cinzel',32,'#ffffff',200,220]],seal:'arcane'},
+ guild:{bg:'parchment',texts:[['СВИДЕТЕЛЬСТВО ГИЛЬДИИ','font-cinzel',32,'#4a1515',180,55],['Настоящим подтверждается, что','font-handwrite',22,'#2b0c0c',220,140],['ИМЯ ПЕРСОНАЖА','font-gothic',42,'#851414',220,205],['принят в ряды гильдии и обладает всеми правами её члена.','font-slavic',20,'#1a0505',125,295]],seal:'gold'}
+ };
+ const d=data[p];if(!d)return;appState.bgPreset=d.bg;appState.customBgUrl=null;
+ appState.elements=d.texts.map((t,i)=>({id:'el-'+(i+1),content:t[0],font:t[1],size:t[2],color:t[3],x:t[4],y:t[5],weight:'normal',align:'center'}));
+ appState.seal={visible:true,type:d.seal,customUrl:null,x:600,y:360,size:130,rotate:-8};activeElementId=null;$('templatePreset').value='';renderApp();
+}
+// Drag via Pointer Events: supports mouse, pen and touch.
+$('certificateContainer').addEventListener('pointerdown',e=>{
+ const target=e.target.closest('.draggable');
+ activeElementId=target?target.id:null;
+ if(!target){renderCanvas();return}
+ e.preventDefault();target.setPointerCapture?.(e.pointerId);
+ const rect=target.getBoundingClientRect();drag={id:target.id,dx:e.clientX-rect.left,dy:e.clientY-rect.top};
+ renderCanvas();
+});
+document.addEventListener('pointermove',e=>{
+ if(!drag)return;const c=$('certificateContainer').getBoundingClientRect(),x=e.clientX-c.left-drag.dx,y=e.clientY-c.top-drag.dy;
+ if(drag.id==='seal-element'){appState.seal.x=Math.round(x);appState.seal.y=Math.round(y)}
+ else{const el=appState.elements.find(v=>v.id===drag.id);if(el){el.x=Math.round(x);el.y=Math.round(y)}}
+ const d=$(drag.id);if(d){d.style.left=x+'px';d.style.top=y+'px'}
+});
+document.addEventListener('pointerup',()=>{if(drag){drag=null;renderControls()}});
+async function exportPNG(){
+ if(!window.html2canvas){alert('Не загрузилась библиотека экспорта. Обновите страницу и попробуйте снова.');return}
+ const active=activeElementId;activeElementId=null;renderCanvas();
+ try{const canvas=await html2canvas($('certificateContainer'),{scale:2,useCORS:true,backgroundColor:null});
+ const a=document.createElement('a');a.download='certificate_'+Date.now()+'.png';a.href=canvas.toDataURL('image/png');a.click()}
+ catch(err){console.error(err);alert('Не удалось создать PNG: '+err.message)}
+ finally{activeElementId=active;renderCanvas()}
+}
+function openSupabaseModal(){$('sbUrl').value=localStorage.getItem('sb_url')||'';$('sbKey').value=localStorage.getItem('sb_key')||'';$('supabaseModal').style.display='flex'}
+function closeSupabaseModal(){$('supabaseModal').style.display='none'}
+function initSupabaseFromStorage(){try{const u=localStorage.getItem('sb_url'),k=localStorage.getItem('sb_key');supabaseClient=u&&k&&window.supabase?window.supabase.createClient(u,k):null}catch(e){console.error(e);supabaseClient=null}}
+function saveSupabaseCredentials(){const u=$('sbUrl').value.trim(),k=$('sbKey').value.trim();if(!u||!k){alert('Заполните URL и Key');return}try{localStorage.setItem('sb_url',u);localStorage.setItem('sb_key',k);initSupabaseFromStorage();if(!supabaseClient)throw new Error('Не удалось создать подключение');closeSupabaseModal();alert('Настройки сохранены')}catch(e){alert('Ошибка настройки: '+e.message)}}
+async function saveToSupabase(){if(!supabaseClient){alert('Сначала настройте Supabase');openSupabaseModal();return}const title=prompt('Название шаблона:','Грамота для ролевой');if(!title)return;try{const {error}=await supabaseClient.from('certificates').insert([{title,data:appState}]);if(error)throw error;alert('Шаблон сохранён')}catch(e){alert('Ошибка сохранения: '+e.message)}}
+async function loadFromSupabase(){if(!supabaseClient){alert('Сначала настройте Supabase');openSupabaseModal();return}const list=$('supabaseItemsList');$('loadModal').style.display='flex';list.textContent='Загрузка…';try{const {data,error}=await supabaseClient.from('certificates').select('id,title,created_at,data').order('created_at',{ascending:false});if(error)throw error;list.innerHTML='';if(!data?.length){list.textContent='Сохранённых грамот пока нет';return}data.forEach(item=>{const row=document.createElement('div');row.style.cssText='display:flex;justify-content:space-between;gap:8px;padding:10px;border-bottom:1px solid #475569';const label=document.createElement('span');label.textContent=item.title+' — '+new Date(item.created_at).toLocaleString('ru-RU');const open=document.createElement('button');open.textContent='Открыть';open.style.background='#0891b2';open.onclick=()=>{appState=item.data;activeElementId=null;renderApp();closeLoadModal()};const del=document.createElement('button');del.textContent='Удалить';del.style.background='#7f1d1d';del.onclick=()=>deleteSupabaseItem(item.id);const actions=document.createElement('span');actions.append(open,del);row.append(label,actions);list.append(row)})}catch(e){list.textContent='Ошибка загрузки: '+e.message}}
+function closeLoadModal(){$('loadModal').style.display='none'}
+async function deleteSupabaseItem(id){if(!confirm('Удалить этот шаблон?'))return;try{const {error}=await supabaseClient.from('certificates').delete().eq('id',id);if(error)throw error;loadFromSupabase()}catch(e){alert('Ошибка удаления: '+e.message)}}
+window.addEventListener('DOMContentLoaded',()=>{initSupabaseFromStorage();renderApp()});
+</script>
+</body></html>
