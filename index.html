@@ -145,26 +145,42 @@ function renderControls(){
   const num=document.createElement('span');num.textContent='#'+(i+1);num.style.color='#94a3b8';num.style.fontSize='12px';
   
   const textarea=document.createElement('textarea');textarea.value=el.content;textarea.style.cssText='flex:1;height:54px;font-size:12px';textarea.placeholder='Текст грамоты (можно вводить переносы строк)';
-  textarea.addEventListener('input',()=>{el.content=textarea.value;const canvasText=$(el.id);if(canvasText)canvasText.textContent=textarea.value});
+  textarea.addEventListener('input',()=>{
+   el.content=textarea.value;
+   const canvasText=$(el.id);
+   if(canvasText) canvasText.textContent=textarea.value;
+  });
   
   const del=document.createElement('button');del.textContent='✕';del.style.background='#7f1d1d';del.onclick=()=>removeText(el.id);
   title.append(num,textarea,del);box.append(title);
   
   const row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:6px;margin-bottom:6px';
-  const font=document.createElement('select');[['font-slavic','Славянский'],['font-gothic','Готика'],['font-handwrite','Рукописный'],['font-cinzel','Антиква'],['font-pixel','Пиксельный']].forEach(([v,t])=>{let o=document.createElement('option');o.value=v;o.textContent=t;font.append(o)});font.value=el.font;font.onchange=()=>{el.font=font.value;renderCanvas()};
-  const size=document.createElement('input');size.type='number';size.min=8;size.max=160;size.value=el.size;size.onchange=()=>{el.size=Math.max(8,Math.min(160,Number(size.value)||8));renderCanvas()};
-  const color=document.createElement('input');color.type='color';color.value=el.color;color.style.width='100%';color.oninput=()=>{el.color=color.value;const d=$(el.id);if(d)d.style.color=color.value};
+  const font=document.createElement('select');[['font-slavic','Славянский'],['font-gothic','Готика'],['font-handwrite','Рукописный'],['font-cinzel','Антиква'],['font-pixel','Пиксельный']].forEach(([v,t])=>{let o=document.createElement('option');o.value=v;o.textContent=t;font.append(o)});font.value=el.font;
+  font.onchange=()=>{el.font=font.value;renderCanvas()};
+  
+  const size=document.createElement('input');size.type='number';size.min=8;size.max=160;size.value=el.size;
+  size.onchange=()=>{el.size=Math.max(8,Math.min(160,Number(size.value)||8));renderCanvas()};
+  
+  const color=document.createElement('input');color.type='color';color.value=el.color;color.style.width='100%';
+  color.oninput=()=>{el.color=color.value;const d=$(el.id);if(d)d.style.color=color.value};
+  
   row.append(font,size,color);box.append(row);
 
   const rowStyle=document.createElement('div');rowStyle.style.cssText='display:flex;gap:6px;align-items:center';
-  const btnBold=document.createElement('button');btnBold.textContent='B';btnBold.style.fontWeight='bold';btnBold.style.flex='1';btnBold.style.background=el.bold?'#d97706':'#334155';btnBold.onclick=()=>{el.bold=!el.bold;renderApp()};
-  const btnItalic=document.createElement('button');btnItalic.textContent='I';btnItalic.style.fontStyle='italic';btnItalic.style.flex='1';btnItalic.style.background=el.italic?'#d97706':'#334155';btnItalic.onclick=()=>{el.italic=!el.italic;renderApp()};
+  const btnBold=document.createElement('button');btnBold.textContent='B';btnBold.style.fontWeight='bold';btnBold.style.flex='1';btnBold.style.background=el.bold?'#d97706':'#334155';
+  btnBold.onclick=(e)=>{e.preventDefault();el.bold=!el.bold;renderApp();};
+  
+  const btnItalic=document.createElement('button');btnItalic.textContent='I';btnItalic.style.fontStyle='italic';btnItalic.style.flex='1';btnItalic.style.background=el.italic?'#d97706':'#334155';
+  btnItalic.onclick=(e)=>{e.preventDefault();el.italic=!el.italic;renderApp();};
+  
   rowStyle.append(btnBold,btnItalic);box.append(rowStyle);
 
   list.append(box);
  });
- $('sealAdjustments').style.display=appState.seal.visible?'block':'none';
- $('sealSizeVal').textContent=appState.seal.size+'px';$('sealRotateVal').textContent=appState.seal.rotate+'°';
+ const sealAdj=$('sealAdjustments');
+ if(sealAdj) sealAdj.style.display=appState.seal.visible?'block':'none';
+ if($('sealSizeVal')) $('sealSizeVal').textContent=appState.seal.size+'px';
+ if($('sealRotateVal')) $('sealRotateVal').textContent=appState.seal.rotate+'°';
 }
 function addText(){const id='el-'+Date.now();appState.elements.push({id,content:'Новый текст',font:'font-slavic',size:24,color:'#000000',x:150,y:150,bold:false,italic:false,align:'center'});activeElementId=id;renderApp()}
 function removeText(id){appState.elements=appState.elements.filter(e=>e.id!==id);if(activeElementId===id)activeElementId=null;renderApp()}
@@ -217,7 +233,7 @@ function openSupabaseModal(){$('sbUrl').value=localStorage.getItem('sb_url')||''
 function closeSupabaseModal(){$('supabaseModal').style.display='none'}
 function initSupabaseFromStorage(){try{const u=localStorage.getItem('sb_url'),k=localStorage.getItem('sb_key');supabaseClient=u&&k&&window.supabase?window.supabase.createClient(u,k):null}catch(e){console.error(e);supabaseClient=null}}
 function saveSupabaseCredentials(){const u=$('sbUrl').value.trim(),k=$('sbKey').value.trim();if(!u||!k){alert('Заполните URL и Key');return}try{localStorage.setItem('sb_url',u);localStorage.setItem('sb_key',k);initSupabaseFromStorage();if(!supabaseClient)throw new Error('Не удалось создать подключение');closeSupabaseModal();alert('Настройки сохранены')}catch(e){alert('Ошибка настройки: '+e.message)}}
-async function saveToSupabase(){if(!supabaseClient){alert('Сначала настройте Supabase');openSupabaseModal();return}const title=prompt('Название шаблона:','Грамота для ролевой');if(!title)return;try{const {error}=await supabaseClient.from('certificates').insert([{title,data:appState}]);if(error)throw error;alert('Шаблон сохранён')}catch(e){alert('Ошибка сохранения: '+e.message)}}
+async function saveToSupabase(){if(!supabaseClient){alert('Сначала настройте Supabase');openSupabaseModal();return}const title=prompt('Название шаблона:','Грамота для ролевой');if(!title)return;try{const {error}=await supabaseClient.from('certificates').insert([{title,data:appState}];if(error)throw error;alert('Шаблон сохранён')}catch(e){alert('Ошибка сохранения: '+e.message)}}
 async function loadFromSupabase(){if(!supabaseClient){alert('Сначала настройте Supabase');openSupabaseModal();return}const list=$('supabaseItemsList');$('loadModal').style.display='flex';list.textContent='Загрузка…';try{const {data,error}=await supabaseClient.from('certificates').select('id,title,created_at,data').order('created_at',{ascending:false});if(error)throw error;list.innerHTML='';if(!data?.length){list.textContent='Сохранённых грамот пока нет';return}data.forEach(item=>{const row=document.createElement('div');row.style.cssText='display:flex;justify-content:space-between;gap:8px;padding:10px;border-bottom:1px solid #475569';const label=document.createElement('span');label.textContent=item.title+' — '+new Date(item.created_at).toLocaleString('ru-RU');const open=document.createElement('button');open.textContent='Открыть';open.style.background='#0891b2';open.onclick=()=>{appState=item.data;activeElementId=null;renderApp();closeLoadModal()};const del=document.createElement('button');del.textContent='Удалить';del.style.background='#7f1d1d';del.onclick=()=>deleteSupabaseItem(item.id);const actions=document.createElement('span');actions.append(open,del);row.append(label,actions);list.append(row)})}catch(e){list.textContent='Ошибка загрузки: '+e.message}}
 function closeLoadModal(){$('loadModal').style.display='none'}
 async function deleteSupabaseItem(id){if(!confirm('Удалить этот шаблон?'))return;try{const {error}=await supabaseClient.from('certificates').delete().eq('id',id);if(error)throw error;loadFromSupabase()}catch(e){alert('Ошибка удаления: '+e.message)}}
