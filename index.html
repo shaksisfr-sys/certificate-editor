@@ -107,6 +107,7 @@ const sealSVG={
 };
 function $(id){return document.getElementById(id)}
 function renderApp(){renderCanvas();renderControls()}
+
 function renderCanvas(){
  const c=$('certificateContainer'),layers=$('layersContainer');
  const sizes={landscape:[800,565],portrait:[565,800],square:[600,600]};
@@ -136,6 +137,7 @@ function renderCanvas(){
   d.querySelector('svg')?.setAttribute('style','width:100%;height:100%');layers.appendChild(d);
  }
 }
+
 function renderControls(){
  const list=$('textControlsList');list.innerHTML='';
  appState.elements.forEach((el,i)=>{
@@ -147,15 +149,16 @@ function renderControls(){
   const textarea=document.createElement('textarea');textarea.value=el.content;textarea.style.cssText='flex:1;height:54px;font-size:12px';textarea.placeholder='Текст грамоты (можно вводить переносы строк)';
   textarea.addEventListener('input',()=>{
    el.content=textarea.value;
-   const canvasText=$(el.id);
-   if(canvasText) canvasText.textContent=textarea.value;
+   const canvasText=$(el.id);if(canvasText)canvasText.textContent=textarea.value;
   });
   
   const del=document.createElement('button');del.textContent='✕';del.style.background='#7f1d1d';del.onclick=()=>removeText(el.id);
   title.append(num,textarea,del);box.append(title);
   
   const row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:6px;margin-bottom:6px';
-  const font=document.createElement('select');[['font-slavic','Славянский'],['font-gothic','Готика'],['font-handwrite','Рукописный'],['font-cinzel','Антиква'],['font-pixel','Пиксельный']].forEach(([v,t])=>{let o=document.createElement('option');o.value=v;o.textContent=t;font.append(o)});font.value=el.font;
+  const font=document.createElement('select');
+  [['font-slavic','Славянский'],['font-gothic','Готика'],['font-handwrite','Рукописный'],['font-cinzel','Антиква'],['font-pixel','Пиксельный']].forEach(([v,t])=>{let o=document.createElement('option');o.value=v;o.textContent=t;font.append(o)});
+  font.value=el.font;
   font.onchange=()=>{el.font=font.value;renderCanvas()};
   
   const size=document.createElement('input');size.type='number';size.min=8;size.max=160;size.value=el.size;
@@ -167,21 +170,28 @@ function renderControls(){
   row.append(font,size,color);box.append(row);
 
   const rowStyle=document.createElement('div');rowStyle.style.cssText='display:flex;gap:6px;align-items:center';
+  
   const btnBold=document.createElement('button');btnBold.textContent='B';btnBold.style.fontWeight='bold';btnBold.style.flex='1';btnBold.style.background=el.bold?'#d97706':'#334155';
-  btnBold.onclick=(e)=>{e.preventDefault();el.bold=!el.bold;renderApp();};
+  btnBold.onclick=()=>{
+   el.bold=!el.bold;
+   btnBold.style.background=el.bold?'#d97706':'#334155';
+   const d=$(el.id);if(d)d.style.fontWeight=el.bold?'bold':'normal';
+  };
   
   const btnItalic=document.createElement('button');btnItalic.textContent='I';btnItalic.style.fontStyle='italic';btnItalic.style.flex='1';btnItalic.style.background=el.italic?'#d97706':'#334155';
-  btnItalic.onclick=(e)=>{e.preventDefault();el.italic=!el.italic;renderApp();};
+  btnItalic.onclick=()=>{
+   el.italic=!el.italic;
+   btnItalic.style.background=el.italic?'#d97706':'#334155';
+   const d=$(el.id);if(d)d.style.fontStyle=el.italic?'italic':'normal';
+  };
   
   rowStyle.append(btnBold,btnItalic);box.append(rowStyle);
-
   list.append(box);
  });
- const sealAdj=$('sealAdjustments');
- if(sealAdj) sealAdj.style.display=appState.seal.visible?'block':'none';
- if($('sealSizeVal')) $('sealSizeVal').textContent=appState.seal.size+'px';
- if($('sealRotateVal')) $('sealRotateVal').textContent=appState.seal.rotate+'°';
+ $('sealAdjustments').style.display=appState.seal.visible?'block':'none';
+ $('sealSizeVal').textContent=appState.seal.size+'px';$('sealRotateVal').textContent=appState.seal.rotate+'°';
 }
+
 function addText(){const id='el-'+Date.now();appState.elements.push({id,content:'Новый текст',font:'font-slavic',size:24,color:'#000000',x:150,y:150,bold:false,italic:false,align:'center'});activeElementId=id;renderApp()}
 function removeText(id){appState.elements=appState.elements.filter(e=>e.id!==id);if(activeElementId===id)activeElementId=null;renderApp()}
 function setPresetBg(p){appState.bgPreset=p;appState.customBgUrl=null;renderCanvas()}
@@ -193,19 +203,20 @@ function setBuiltInSeal(t){appState.seal.visible=true;appState.seal.type=t;appSt
 function updateSealSize(v){appState.seal.size=Number(v);const d=$('seal-element');if(d){d.style.width=v+'px';d.style.height=v+'px'}$('sealSizeVal').textContent=v+'px'}
 function updateSealRotate(v){appState.seal.rotate=Number(v);const d=$('seal-element');if(d)d.style.transform=`rotate(${v}deg)`;$('sealRotateVal').textContent=v+'°'}
 function removeSeal(){appState.seal.visible=false;renderApp()}
+
 function applyPreset(p){
  if(!p)return;
  const data={
- hogwarts:{bg:'parchment',texts:[['ШКОЛА МАГИИ И ВОЛШЕБСТВА','font-gothic',32,'#2b0c0c',180,50,true,false],['Свидетельствует о том, что юный маг','font-handwrite',20,'#4a1515',220,130,false,false],['АЛЕКСАНДР БЛЕК','font-slavic',40,'#851414',230,190,true,false],['успешно сдал экзамены по дисциплине\n«Защита от Тёмных Искусств».','font-handwrite',22,'#1a0505',120,280,false,false]],seal:'wax'},
- military:{bg:'royal',texts:[['БОЕВОЙ УКАЗ №404','font-cinzel',36,'#f59e0b',230,50,true,false],['За проявленное мужество и отвагу в бою','font-slavic',20,'#e2e8f0',200,140,false,false],['КАПИТАН ВАЛЕНТАЙН','font-cinzel',38,'#ef4444',180,210,true,false]],seal:'gold'},
- scifi:{bg:'scifi',texts:[['PILOT LICENSE // SECTOR 7','font-pixel',20,'#22d3ee',150,60,false,false],['ID: #8940-EX-ORION','font-pixel',14,'#a855f7',240,140,false,false],['COMMANDER Shepard','font-cinzel',32,'#ffffff',200,220,true,false]],seal:'arcane'},
- guild:{bg:'parchment',texts:[['СВИДЕТЕЛЬСТВО ГИЛЬДИИ','font-cinzel',32,'#4a1515',180,55,true,false],['Настоящим подтверждается, что','font-handwrite',22,'#2b0c0c',220,140,false,false],['ИМЯ ПЕРСОНАЖА','font-gothic',42,'#851414',220,205,true,false],['принят в ряды гильдии\nи обладает всеми правами её члена.','font-slavic',20,'#1a0505',125,295,false,false]],seal:'gold'}
+  hogwarts:{bg:'parchment',texts:[['ШКОЛА МАГИИ И ВОЛШЕБСТВА','font-gothic',32,'#2b0c0c',180,50,true,false],['Свидетельствует о том, что юный маг','font-handwrite',20,'#4a1515',220,130,false,false],['АЛЕКСАНДР БЛЕК','font-slavic',40,'#851414',230,190,true,false],['успешно сдал экзамены по дисциплине\n«Защита от Тёмных Искусств».','font-handwrite',22,'#1a0505',120,280,false,false]],seal:'wax'},
+  military:{bg:'royal',texts:[['БОЕВОЙ УКАЗ №404','font-cinzel',36,'#f59e0b',230,50,true,false],['За проявленное мужество и отвагу в бою','font-slavic',20,'#e2e8f0',200,140,false,false],['КАПИТАН ВАЛЕНТАЙН','font-cinzel',38,'#ef4444',180,210,true,false]],seal:'gold'},
+  scifi:{bg:'scifi',texts:[['PILOT LICENSE // SECTOR 7','font-pixel',20,'#22d3ee',150,60,false,false],['ID: #8940-EX-ORION','font-pixel',14,'#a855f7',240,140,false,false],['COMMANDER Shepard','font-cinzel',32,'#ffffff',200,220,true,false]],seal:'arcane'},
+  guild:{bg:'parchment',texts:[['СВИДЕТЕЛЬСТВО ГИЛЬДИИ','font-cinzel',32,'#4a1515',180,55,true,false],['Настоящим подтверждается, что','font-handwrite',22,'#2b0c0c',220,140,false,false],['ИМЯ ПЕРСОНАЖА','font-gothic',42,'#851414',220,205,true,false],['принят в ряды гильдии\nи обладает всеми правами её члена.','font-slavic',20,'#1a0505',125,295,false,false]],seal:'gold'}
  };
  const d=data[p];if(!d)return;appState.bgPreset=d.bg;appState.customBgUrl=null;
  appState.elements=d.texts.map((t,i)=>({id:'el-'+(i+1),content:t[0],font:t[1],size:t[2],color:t[3],x:t[4],y:t[5],bold:t[6],italic:t[7],align:'center'}));
  appState.seal={visible:true,type:d.seal,customUrl:null,x:600,y:360,size:130,rotate:-8};activeElementId=null;$('templatePreset').value='';renderApp();
 }
-// Drag via Pointer Events: supports mouse, pen and touch.
+
 $('certificateContainer').addEventListener('pointerdown',e=>{
  const target=e.target.closest('.draggable');
  activeElementId=target?target.id:null;
@@ -220,7 +231,8 @@ document.addEventListener('pointermove',e=>{
  else{const el=appState.elements.find(v=>v.id===drag.id);if(el){el.x=Math.round(x);el.y=Math.round(y)}}
  const d=$(drag.id);if(d){d.style.left=x+'px';d.style.top=y+'px'}
 });
-document.addEventListener('pointerup',()=>{if(drag){drag=null;renderControls()}});
+document.instanceListener||document.addEventListener('pointerup',()=>{if(drag){drag=null;renderControls()}});
+
 async function exportPNG(){
  if(!window.html2canvas){alert('Не загрузилась библиотека экспорта. Обновите страницу и попробуйте снова.');return}
  const active=activeElementId;activeElementId=null;renderCanvas();
@@ -233,7 +245,7 @@ function openSupabaseModal(){$('sbUrl').value=localStorage.getItem('sb_url')||''
 function closeSupabaseModal(){$('supabaseModal').style.display='none'}
 function initSupabaseFromStorage(){try{const u=localStorage.getItem('sb_url'),k=localStorage.getItem('sb_key');supabaseClient=u&&k&&window.supabase?window.supabase.createClient(u,k):null}catch(e){console.error(e);supabaseClient=null}}
 function saveSupabaseCredentials(){const u=$('sbUrl').value.trim(),k=$('sbKey').value.trim();if(!u||!k){alert('Заполните URL и Key');return}try{localStorage.setItem('sb_url',u);localStorage.setItem('sb_key',k);initSupabaseFromStorage();if(!supabaseClient)throw new Error('Не удалось создать подключение');closeSupabaseModal();alert('Настройки сохранены')}catch(e){alert('Ошибка настройки: '+e.message)}}
-async function saveToSupabase(){if(!supabaseClient){alert('Сначала настройте Supabase');openSupabaseModal();return}const title=prompt('Название шаблона:','Грамота для ролевой');if(!title)return;try{const {error}=await supabaseClient.from('certificates').insert([{title,data:appState}];if(error)throw error;alert('Шаблон сохранён')}catch(e){alert('Ошибка сохранения: '+e.message)}}
+async function saveToSupabase(){if(!supabaseClient){alert('Сначала настройте Supabase');openSupabaseModal();return}const title=prompt('Название шаблона:','Грамота для ролевой');if(!title)return;try{const {error}=await supabaseClient.from('certificates').insert([{title,data:appState}]);if(error)throw error;alert('Шаблон сохранён')}catch(e){alert('Ошибка сохранения: '+e.message)}}
 async function loadFromSupabase(){if(!supabaseClient){alert('Сначала настройте Supabase');openSupabaseModal();return}const list=$('supabaseItemsList');$('loadModal').style.display='flex';list.textContent='Загрузка…';try{const {data,error}=await supabaseClient.from('certificates').select('id,title,created_at,data').order('created_at',{ascending:false});if(error)throw error;list.innerHTML='';if(!data?.length){list.textContent='Сохранённых грамот пока нет';return}data.forEach(item=>{const row=document.createElement('div');row.style.cssText='display:flex;justify-content:space-between;gap:8px;padding:10px;border-bottom:1px solid #475569';const label=document.createElement('span');label.textContent=item.title+' — '+new Date(item.created_at).toLocaleString('ru-RU');const open=document.createElement('button');open.textContent='Открыть';open.style.background='#0891b2';open.onclick=()=>{appState=item.data;activeElementId=null;renderApp();closeLoadModal()};const del=document.createElement('button');del.textContent='Удалить';del.style.background='#7f1d1d';del.onclick=()=>deleteSupabaseItem(item.id);const actions=document.createElement('span');actions.append(open,del);row.append(label,actions);list.append(row)})}catch(e){list.textContent='Ошибка загрузки: '+e.message}}
 function closeLoadModal(){$('loadModal').style.display='none'}
 async function deleteSupabaseItem(id){if(!confirm('Удалить этот шаблон?'))return;try{const {error}=await supabaseClient.from('certificates').delete().eq('id',id);if(error)throw error;loadFromSupabase()}catch(e){alert('Ошибка удаления: '+e.message)}}
