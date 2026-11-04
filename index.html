@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="ru" class="h-full bg-slate-950 text-slate-100 dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Редактор Грамот и Дипломов RP</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Google Fonts for Cyrillic RPG Aesthetics -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Comfortaa:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Marck+Script&family=Montserrat:wght@300;400;600;800&family=Open+Sans:ital,wght@0,400;0,700;1,400&family=Press+Start+2P&family=Ruslan+Display&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
+
+  <!-- html2canvas for High Quality Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    /* Custom Font Utility Classes */
+    .font-cormorant { font-family: 'Cormorant Garamond', serif; }
+    .font-marck { font-family: 'Marck Script', cursive; }
+    .font-caveat { font-family: 'Caveat', cursive; }
+    .font-ruslan { font-family: 'Ruslan Display', cursive; }
+    .font-comfortaa { font-family: 'Comfortaa', cursive; }
+    .font-montserrat { font-family: 'Montserrat', sans-serif; }
+    .font-pixel { font-family: 'Press Start 2P', monospace; }
+
+    /* Canvas Grid pattern for transparency/editor feel */
+    .bg-grid-pattern {
+      background-size: 20px 20px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    }
+
+    /* Selected border outline animation */
+    .selected-element {
+      outline: 2px dashed #3b82f6;
+      outline-offset: 4px;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden antialiased select-none font-montserrat bg-slate-950">
+
+  <!-- TOP NAVBAR -->
+  <header class="h-14 border-b border-slate-800 bg-slate-900 px-4 flex items-center justify-between z-20 shrink-0">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
+        <i class="fa-solid font-bold fa-scroll text-lg"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-slate-100 text-sm md:text-base leading-tight">Редактор Грамот RP</h1>
+        <p class="text-[11px] text-slate-400 hidden sm:block">Конструктор документов для ролевых игр</p>
+      </div>
+    </div>
+
+    <!-- Quick Presets Dropdown -->
+    <div class="flex items-center space-x-2">
+      <div class="relative inline-block text-left">
+        <select id="preset-template-select" class="bg-slate-800 hover:bg-slate-750 text-amber-300 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-700 focus:outline-none focus:border-amber-500 transition cursor-pointer">
+          <option value="" disabled selected>📜 Готовые Шаблоны...</option>
+          <option value="hogwarts">🧙‍♂️ Грамота Хогвартса / Магия</option>
+          <option value="military">⚔️ Военный Указ / Приказ</option>
+          <option value="sci-fi">🚀 Космическая Лицензия / Сверхразум</option>
+          <option value="tavern">🍺 Гильдейское Свидетельство</option>
+        </select>
+      </div>
+
+      <!-- Supabase Modal Trigger -->
+      <button onclick="toggleModal('supabase-modal')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-2 rounded-lg border border-slate-700 text-xs font-medium transition flex items-center gap-1.5" title="Подключение к Supabase">
+        <i class="fa-solid fa-database text-emerald-400"></i>
+        <span class="hidden md:inline">Облако</span>
+      </button>
+
+      <!-- Download Button -->
+      <button onclick="exportCanvas()" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg shadow-md transition flex items-center gap-2">
+        <i class="fa-solid fa-download"></i>
+        <span>Скачать PNG</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN MAIN EDITOR WORKSPACE -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- LEFT CONTROL PANEL (Tabs & Controls) -->
+    <aside class="w-80 md:w-96 border-r border-slate-800 bg-slate-900/90 backdrop-blur-md flex flex-col z-10 shrink-0">
+      
+      <!-- Tab Buttons -->
+      <div class="flex border-b border-slate-800 bg-slate-950/50">
+        <button onclick="switchTab('bg-tab')" id="tab-btn-bg-tab" class="tab-btn flex-1 py-3 text-xs font-semibold text-amber-400 border-b-2 border-amber-400 transition flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-image"></i> Фон
+        </button>
+        <button onclick="switchTab('text-tab')" id="tab-btn-text-tab" class="tab-btn flex-1 py-3 text-xs font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-font"></i> Текст
+        </button>
+        <button onclick="switchTab('stamps-tab')" id="tab-btn-stamps-tab" class="tab-btn flex-1 py-3 text-xs font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-stamp"></i> Печати
+        </button>
+        <button onclick="switchTab('layers-tab')" id="tab-btn-layers-tab" class="tab-btn flex-1 py-3 text-xs font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-layer-group"></i> Слои
+        </button>
+      </div>
+
+      <!-- Tab Contents (Scrollable) -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-6">
+
+        <!-- TAB 1: BACKGROUND & CANVAS SETTINGS -->
+        <div id="bg-tab" class="tab-content space-y-5">
+          <!-- Canvas Aspect Ratio -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Формат Документа</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="setCanvasRatio('a4-landscape')" class="ratio-btn bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2.5 rounded-lg border border-slate-700 flex items-center justify-center gap-2 transition active">
+                <i class="fa-solid fa-file text-amber-400 rotate-90"></i> A4 Альбомная
+              </button>
+              <button onclick="setCanvasRatio('a4-portrait')" class="ratio-btn bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2.5 rounded-lg border border-slate-700 flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-file text-amber-400"></i> A4 Книжная
+              </button>
+              <button onclick="setCanvasRatio('square')" class="ratio-btn bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2.5 rounded-lg border border-slate-700 flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-square text-amber-400"></i> Квадрат (1:1)
+              </button>
+              <button onclick="setCanvasRatio('story')" class="ratio-btn bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2.5 rounded-lg border border-slate-700 flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-mobile-screen text-amber-400"></i> Сториз (9:16)
+              </button>
+            </div>
+          </div>
+
+          <!-- Custom Background Upload -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Загрузить свой фон</label>
+            <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-700 hover:border-amber-500 bg-slate-800/40 hover:bg-slate-800 p-4 rounded-xl cursor-pointer transition group">
+              <i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-400 group-hover:text-amber-400 mb-1 transition"></i>
+              <span class="text-xs text-slate-300 font-medium">Выберите файл на ПК</span>
+              <span class="text-[10px] text-slate-500 mt-0.5">PNG, JPG, WebP</span>
+              <input type="file" id="bg-file-input" accept="image/*" class="hidden" onchange="handleCustomBgUpload(event)">
+            </label>
+          </div>
+
+          <!-- Preset Backgrounds -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Готовые текстуры фонов</label>
+            <div class="grid grid-cols-2 gap-2.5">
+              <button onclick="setPresetBg('parchment')" class="bg-slate-800 hover:border-amber-500 p-2 rounded-lg border border-slate-700 text-left transition group flex flex-col gap-1">
+                <div class="h-16 w-full rounded bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-900 font-cormorant text-xs font-bold shadow-inner">Пергамент</div>
+                <span class="text-[11px] text-slate-300 font-medium">Старый пергамент</span>
+              </button>
+              <button onclick="setPresetBg('dark-magic')" class="bg-slate-800 hover:border-amber-500 p-2 rounded-lg border border-slate-700 text-left transition group flex flex-col gap-1">
+                <div class="h-16 w-full rounded bg-slate-900 border border-amber-600/40 flex items-center justify-center text-amber-500 font-ruslan text-xs shadow-inner">Темная магия</div>
+                <span class="text-[11px] text-slate-300 font-medium">Магический свиток</span>
+              </button>
+              <button onclick="setPresetBg('scifi')" class="bg-slate-800 hover:border-amber-500 p-2 rounded-lg border border-slate-700 text-left transition group flex flex-col gap-1">
+                <div class="h-16 w-full rounded bg-cyan-950 border border-cyan-500 flex items-center justify-center text-cyan-400 font-mono text-[10px] shadow-inner">SCI-FI / Терминал</div>
+                <span class="text-[11px] text-slate-300 font-medium">Киберпанк / Космос</span>
+              </button>
+              <button onclick="setPresetBg('royal')" class="bg-slate-800 hover:border-amber-500 p-2 rounded-lg border border-slate-700 text-left transition group flex flex-col gap-1">
+                <div class="h-16 w-full rounded bg-emerald-950 border-2 border-amber-400 flex items-center justify-center text-amber-300 font-serif text-xs font-bold shadow-inner">Королевский</div>
+                <span class="text-[11px] text-slate-300 font-medium">Элитный Указ</span>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Background Tint / Opacity -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Затемнение / Фильтр фона</label>
+            <div class="flex items-center gap-3">
+              <input type="range" id="bg-overlay-opacity" min="0" max="0.8" step="0.05" value="0" oninput="updateBgOverlay(this.value)" class="w-full accent-amber-500 bg-slate-800 h-1.5 rounded-lg cursor-pointer">
+              <span id="bg-overlay-val" class="text-xs font-mono text-slate-400 w-8">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: TEXT LAYERS EDITING -->
+        <div id="text-tab" class="tab-content space-y-5 hidden">
+          
+          <!-- Quick Add Text Buttons -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Добавить Текст</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="addTextLayer('Заголовок Грамоты', {fontSize: 34, isBold: true})" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2 px-3 rounded-lg border border-slate-700 flex items-center justify-center gap-1.5 transition">
+                <i class="fa-solid fa-heading text-amber-400"></i> Заголовок
+              </button>
+              <button onclick="addTextLayer('Награждается Имя Персонажа', {fontSize: 22, fontStyle: 'font-marck'})" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2 px-3 rounded-lg border border-slate-700 flex items-center justify-center gap-1.5 transition">
+                <i class="fa-solid fa-user-tag text-amber-400"></i> Имя / Кому
+              </button>
+              <button onclick="addTextLayer('За проявленный героизм, верность гильдии и неоценимый вклад в победу над Тьмой.', {fontSize: 16})" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2 px-3 rounded-lg border border-slate-700 flex items-center justify-center gap-1.5 transition col-span-2">
+                <i class="fa-solid fa-align-left text-amber-400"></i> Основной текст описания
+              </button>
+            </div>
+          </div>
+
+          <!-- Active Text Layer Controls -->
+          <div id="active-text-controls" class="border-t border-slate-800 pt-4 space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Настройка выделенного текста</span>
+              <button onclick="deleteActiveLayer()" class="text-xs text-rose-400 hover:text-rose-300 transition" title="Удалить слой">
+                <i class="fa-solid fa-trash-can"></i> Удалить
+              </button>
+            </div>
+
+            <!-- Text Content Input -->
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Содержание текста</label>
+              <textarea id="text-content-input" oninput="updateActiveText('text', this.value)" rows="3" class="w-full bg-slate-950 border border-slate-750 focus:border-amber-500 rounded-lg p-2.5 text-xs text-slate-100 focus:outline-none transition"></textarea>
+            </div>
+
+            <!-- Font Family Selector -->
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Шрифт</label>
+              <select id="font-family-select" onchange="updateActiveText('fontFamily', this.value)" class="w-full bg-slate-950 border border-slate-750 focus:border-amber-500 rounded-lg p-2 text-xs text-slate-100 focus:outline-none cursor-pointer">
+                <option value="font-cormorant">📜 Cormorant Garamond (Классический Сердитый)</option>
+                <option value="font-marck">✍️ Marck Script (Изящный рукописный)</option>
+                <option value="font-caveat">🖊️ Caveat (Живой размашистый)</option>
+                <option value="font-ruslan">🛡️ Ruslan Display (Древнеславянский / Готика)</option>
+                <option value="font-comfortaa">✨ Comfortaa (Современный закругленный)</option>
+                <option value="font-montserrat">🏢 Montserrat (Чистый / Техничный)</option>
+                <option value="font-pixel">👾 Pixel 8-Bit (Ретро игры)</option>
+              </select>
+            </div>
+
+            <!-- Font Size & Color -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">Размер (px)</label>
+                <input type="number" id="font-size-input" min="10" max="120" onchange="updateActiveText('fontSize', parseInt(this.value))" class="w-full bg-slate-950 border border-slate-750 focus:border-amber-500 rounded-lg p-2 text-xs text-slate-100 focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">Цвет текста</label>
+                <div class="flex items-center gap-2">
+                  <input type="color" id="font-color-input" onchange="updateActiveText('color', this.value)" class="h-8 w-12 bg-transparent rounded cursor-pointer border border-slate-750">
+                  <input type="text" id="font-color-text" onchange="updateActiveText('color', this.value)" class="w-full bg-slate-950 border border-slate-750 rounded p-1.5 text-[11px] text-slate-300 uppercase">
+                </div>
+              </div>
+            </div>
+
+            <!-- Text Formatting Options (Bold, Alignment, Spacing) -->
+            <div class="flex items-center justify-between bg-slate-950 p-2 rounded-lg border border-slate-800">
+              <div class="flex space-x-1">
+                <button onclick="toggleActiveTextBold()" id="bold-toggle-btn" class="w-8 h-8 rounded hover:bg-slate-800 flex items-center justify-center text-slate-300 font-bold transition">B</button>
+                <button onclick="toggleActiveTextItalic()" id="italic-toggle-btn" class="w-8 h-8 rounded hover:bg-slate-800 flex items-center justify-center text-slate-300 italic font-serif transition">I</button>
+              </div>
+              <div class="h-4 w-px bg-slate-800"></div>
+              <div class="flex space-x-1">
+                <button onclick="updateActiveText('align', 'left')" class="w-8 h-8 rounded hover:bg-slate-800 flex items-center justify-center text-slate-300 transition"><i class="fa-solid fa-align-left text-xs"></i></button>
+                <button onclick="updateActiveText('align', 'center')" class="w-8 h-8 rounded hover:bg-slate-800 flex items-center justify-center text-slate-300 transition"><i class="fa-solid fa-align-center text-xs"></i></button>
+                <button onclick="updateActiveText('align', 'right')" class="w-8 h-8 rounded hover:bg-slate-800 flex items-center justify-center text-slate-300 transition"><i class="fa-solid fa-align-right text-xs"></i></button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- TAB 3: STAMPS & SEALS -->
+        <div id="stamps-tab" class="tab-content space-y-5 hidden">
+          <!-- Upload Custom Stamp -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Загрузить свою печать/герб</label>
+            <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-700 hover:border-amber-500 bg-slate-800/40 hover:bg-slate-800 p-3.5 rounded-xl cursor-pointer transition group">
+              <i class="fa-solid fa-file-image text-xl text-slate-400 group-hover:text-amber-400 mb-1 transition"></i>
+              <span class="text-xs text-slate-300 font-medium">Добавить картинку PNG/SVG</span>
+              <input type="file" accept="image/*" class="hidden" onchange="handleStampUpload(event)">
+            </label>
+          </div>
+
+          <!-- Built-in SVG Seals Preset -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Готовые восковые печати & эмблемы</label>
+            <div class="grid grid-cols-3 gap-2.5">
+              
+              <!-- Red Wax Seal -->
+              <button onclick="addPresetStamp('red-seal')" class="bg-slate-800 hover:bg-slate-750 p-3 rounded-xl border border-slate-700 flex flex-col items-center gap-2 group transition">
+                <div class="w-12 h-12 rounded-full bg-rose-900 border-2 border-rose-600 flex items-center justify-center text-amber-300 text-lg shadow-lg group-hover:scale-105 transition">
+                  <i class="fa-solid fa-dragon"></i>
+                </div>
+                <span class="text-[10px] text-slate-400">Красный Воск</span>
+              </button>
+
+              <!-- Gold Imperial Seal -->
+              <button onclick="addPresetStamp('gold-seal')" class="bg-slate-800 hover:bg-slate-750 p-3 rounded-xl border border-slate-700 flex flex-col items-center gap-2 group transition">
+                <div class="w-12 h-12 rounded-full bg-amber-600 border-2 border-amber-300 flex items-center justify-center text-slate-950 text-lg shadow-lg group-hover:scale-105 transition">
+                  <i class="fa-solid fa-crown"></i>
+                </div>
+                <span class="text-[10px] text-slate-400">Золотой Герб</span>
+              </button>
+
+              <!-- Magic Arcane Seal -->
+              <button onclick="addPresetStamp('magic-seal')" class="bg-slate-800 hover:bg-slate-750 p-3 rounded-xl border border-slate-700 flex flex-col items-center gap-2 group transition">
+                <div class="w-12 h-12 rounded-full bg-indigo-950 border-2 border-cyan-400 flex items-center justify-center text-cyan-300 text-lg shadow-lg group-hover:scale-105 transition">
+                  <i class="fa-solid fa-hat-wizard"></i>
+                </div>
+                <span class="text-[10px] text-slate-400">Аркан Магия</span>
+              </button>
+
+              <!-- Military / Tech Stamp -->
+              <button onclick="addPresetStamp('tech-stamp')" class="bg-slate-800 hover:bg-slate-750 p-3 rounded-xl border border-slate-700 flex flex-col items-center gap-2 group transition">
+                <div class="w-12 h-12 rounded-md bg-slate-900 border border-red-500 flex items-center justify-center text-red-500 text-xs font-mono font-bold group-hover:scale-105 transition">
+                  SEALED
+                </div>
+                <span class="text-[10px] text-slate-400">Штамп Указа</span>
+              </button>
+
+              <!-- Compass Guild Seal -->
+              <button onclick="addPresetStamp('guild-seal')" class="bg-slate-800 hover:bg-slate-750 p-3 rounded-xl border border-slate-700 flex flex-col items-center gap-2 group transition">
+                <div class="w-12 h-12 rounded-full bg-emerald-950 border-2 border-emerald-400 flex items-center justify-center text-emerald-300 text-lg shadow-lg group-hover:scale-105 transition">
+                  <i class="fa-solid fa-compass"></i>
+                </div>
+                <span class="text-[10px] text-slate-400">Гильдия</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Selected Stamp Controls -->
+          <div id="active-stamp-controls" class="border-t border-slate-800 pt-4 space-y-3 hidden">
+            <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Размер и Поворот Печати</span>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Размер (px)</label>
+              <input type="range" min="40" max="300" id="stamp-size-range" oninput="updateActiveStamp('size', this.value)" class="w-full accent-amber-500">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Угол поворота</label>
+              <input type="range" min="-180" max="180" id="stamp-rotate-range" oninput="updateActiveStamp('rotate', this.value)" class="w-full accent-amber-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: LAYERS MANAGEMENT -->
+        <div id="layers-tab" class="tab-content space-y-3 hidden">
+          <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Все элементы на грамоте</label>
+          <div id="layers-list" class="space-y-2">
+            <!-- Dynamic Layers render here -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Quick Template Save/Load Bar -->
+      <div class="p-3 border-t border-slate-800 bg-slate-950 flex items-center justify-between text-xs">
+        <button onclick="saveTemplateToLocal()" class="text-slate-300 hover:text-amber-400 transition flex items-center gap-1">
+          <i class="fa-solid fa-floppy-disk"></i> Сохранить в браузер
+        </button>
+        <button onclick="loadTemplateFromLocal()" class="text-slate-300 hover:text-amber-400 transition flex items-center gap-1">
+          <i class="fa-solid fa-folder-open"></i> Загрузить
+        </button>
+      </div>
+    </aside>
+
+    <!-- RIGHT CANVAS PREVIEW AREA -->
+    <main class="flex-1 bg-slate-950 bg-grid-pattern overflow-auto p-4 md:p-8 flex items-center justify-center relative">
+      
+      <!-- Interactive Editor Canvas Frame -->
+      <div id="certificate-canvas" class="relative bg-amber-50 shadow-2xl transition-all duration-300 overflow-hidden flex flex-col justify-between" style="width: 842px; height: 595px;">
+        
+        <!-- Background Layer -->
+        <div id="canvas-bg-layer" class="absolute inset-0 bg-cover bg-center z-0 transition-all pointer-events-none" style="background-image: url('https://images.unsplash.com/photo-1585314062340-f1a5a7c9328d?q=80&w=1200&auto=format&fit=crop');">
+          <div id="canvas-bg-overlay" class="w-full h-full bg-black/0"></div>
+        </div>
+
+        <!-- Elements Layer (Texts & Stamps Container) -->
+        <div id="canvas-elements-container" class="absolute inset-0 z-10">
+          <!-- Text and Stamps get dynamically added here -->
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- MODAL: SUPABASE CONFIGURATION -->
+  <div id="supabase-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2 text-emerald-400 font-bold">
+          <i class="fa-solid fa-database"></i>
+          <span>Настройка Supabase Cloud</span>
+        </div>
+        <button onclick="toggleModal('supabase-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <p class="text-xs text-slate-400 leading-relaxed">
+        Вы можете подключить свою бесплатную базу данных Supabase для сохранения шаблонов грамот в облако.
+      </p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-[11px] text-slate-300 mb-1">Supabase Project URL</label>
+          <input type="text" id="supabase-url" placeholder="https://xyzcompany.supabase.co" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+        </div>
+        <div>
+          <label class="block text-[11px] text-slate-300 mb-1">Supabase Anon Key</label>
+          <input type="password" id="supabase-key" placeholder="eyJhbGciOiJIUzI1NiIsIn..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-2">
+        <button onclick="saveSupabaseConfig()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-lg transition">
+          Сохранить ключи
+        </button>
+        <button onclick="cloudSaveTemplate()" class="bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs px-3 py-2 rounded-lg border border-slate-700 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Сохранить шаблон
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- EDITOR APPLICATION LOGIC -->
+  <script>
+    // State Management
+    const state = {
+      aspectRatio: 'a4-landscape',
+      layers: [], // stores text & stamp objects
+      selectedLayerId: null,
+      bgOverlayOpacity: 0,
+      supabaseClient: null
+    };
+
+    // Canvas Size Definitions (in px)
+    const ratioSizes = {
+      'a4-landscape': { width: 842, height: 595 },
+      'a4-portrait': { width: 595, height: 842 },
+      'square': { width: 650, height: 650 },
+      'story': { width: 450, height: 800 }
+    };
+
+    // Initial setup on window load
+    window.onload = function() {
+      // Load initial default Hogwarts-style certificate template
+      loadPresetTemplate('hogwarts');
+
+      // Setup document-wide click listener to unselect elements
+      document.getElementById('certificate-canvas').addEventListener('click', (e) => {
+        if (e.target.id === 'certificate-canvas' || e.target.id === 'canvas-elements-container') {
+          deselectAllLayers();
+        }
+      });
+
+      // Template selector event
+      document.getElementById('preset-template-select').addEventListener('change', (e) => {
+        loadPresetTemplate(e.target.value);
+      });
+
+      // Load Supabase credentials if stored
+      const savedUrl = localStorage.getItem('rp_certificate_sp_url');
+      const savedKey = localStorage.getItem('rp_certificate_sp_key');
+      if (savedUrl && savedKey) {
+        document.getElementById('supabase-url').value = savedUrl;
+        document.getElementById('supabase-key').value = savedKey;
+        initSupabase(savedUrl, savedKey);
+      }
+    };
+
+    // TAB SWITCHING LOGIC
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(el => {
+        el.classList.remove('text-amber-400', 'border-amber-400');
+        el.classList.add('text-slate-400', 'border-transparent');
+      });
+
+      document.getElementById(tabId).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+      activeBtn.classList.remove('text-slate-400', 'border-transparent');
+      activeBtn.classList.add('text-amber-400', 'border-amber-400');
+    }
+
+    // ASPECT RATIO LOGIC
+    function setCanvasRatio(ratio) {
+      state.aspectRatio = ratio;
+      const canvas = document.getElementById('certificate-canvas');
+      const dimensions = ratioSizes[ratio];
+
+      canvas.style.width = `${dimensions.width}px`;
+      canvas.style.height = `${dimensions.height}px`;
+
+      // Update button active state
+      document.querySelectorAll('.ratio-btn').forEach(btn => btn.classList.remove('border-amber-500', 'bg-slate-700'));
+      event.currentTarget.classList.add('border-amber-500', 'bg-slate-700');
+    }
+
+    // BACKGROUND MANAGEMENT
+    function handleCustomBgUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          setBgImage(e.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function setBgImage(url) {
+      const bgLayer = document.getElementById('canvas-bg-layer');
+      bgLayer.style.backgroundImage = `url('${url}')`;
+    }
+
+    function setPresetBg(type) {
+      const bgs = {
+        'parchment': 'https://images.unsplash.com/photo-1585314062340-f1a5a7c9328d?q=80&w=1200&auto=format&fit=crop',
+        'dark-magic': 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1200&auto=format&fit=crop',
+        'scifi': 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=1200&auto=format&fit=crop',
+        'royal': 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?q=80&w=1200&auto=format&fit=crop'
+      };
+      if (bgs[type]) setBgImage(bgs[type]);
+    }
+
+    function updateBgOverlay(val) {
+      state.bgOverlayOpacity = val;
+      document.getElementById('bg-overlay-val').innerText = `${Math.round(val * 100)}%`;
+      document.getElementById('canvas-bg-overlay').style.backgroundColor = `rgba(0, 0, 0, ${val})`;
+    }
+
+    // DYNAMIC LAYERS MANAGEMENT (TEXT & STAMPS)
+    function addTextLayer(text = 'Новый текст', options = {}) {
+      const id = 'layer_' + Date.now();
+      const newLayer = {
+        id: id,
+        type: 'text',
+        text: text,
+        x: options.x || 100,
+        y: options.y || 150 + (state.layers.length * 30),
+        fontSize: options.fontSize || 20,
+        fontFamily: options.fontStyle || 'font-cormorant',
+        color: options.color || '#1e293b',
+        isBold: options.isBold || false,
+        isItalic: options.isItalic || false,
+        align: options.align || 'center'
+      };
+
+      state.layers.push(newLayer);
+      renderLayerOnCanvas(newLayer);
+      selectLayer(id);
+      renderLayersList();
+    }
+
+    function renderLayerOnCanvas(layer) {
+      const container = document.getElementById('canvas-elements-container');
+
+      let el = document.getElementById(layer.id);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = layer.id;
+        el.className = 'absolute cursor-move select-none p-1.5 transition-shadow';
+        container.appendChild(el);
+        makeDraggable(el, layer.id);
+      }
+
+      el.style.left = `${layer.x}px`;
+      el.style.top = `${layer.y}px`;
+
+      if (layer.type === 'text') {
+        el.className = `absolute cursor-move select-none p-1 rounded ${layer.fontFamily} ${layer.isBold ? 'font-bold' : ''} ${layer.isItalic ? 'italic' : ''}`;
+        el.style.fontSize = `${layer.fontSize}px`;
+        el.style.color = layer.color;
+        el.style.textAlign = layer.align;
+        el.innerText = layer.text;
+      } else if (layer.type === 'stamp') {
+        el.className = 'absolute cursor-move select-none p-1 rounded';
+        el.style.width = `${layer.size}px`;
+        el.style.height = `${layer.size}px`;
+        el.style.transform = `rotate(${layer.rotate || 0}deg)`;
+        el.innerHTML = layer.html;
+      }
+
+      el.onclick = (e) => {
+        e.stopPropagation();
+        selectLayer(layer.id);
+      };
+    }
+
+    // DRAG AND DROP HANDLER
+    function makeDraggable(element, layerId) {
+      let posX = 0, posY = 0, mouseX = 0, mouseY = 0;
+
+      element.onmousedown = dragMouseDown;
+      element.ontouchstart = dragMouseDown;
+
+      function dragMouseDown(e) {
+        e = e || window.event;
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+        mouseX = clientX;
+        mouseY = clientY;
+
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+        document.ontouchend = closeDragElement;
+        document.ontouchmove = elementDrag;
+
+        selectLayer(layerId);
+      }
+
+      function elementDrag(e) {
+        e = e || window.event;
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+        posX = mouseX - clientX;
+        posY = mouseY - clientY;
+        mouseX = clientX;
+        mouseY = clientY;
+
+        const newTop = element.offsetTop - posY;
+        const newLeft = element.offsetLeft - posX;
+
+        element.style.top = newTop + "px";
+        element.style.left = newLeft + "px";
+
+        const layer = state.layers.find(l => l.id === layerId);
+        if (layer) {
+          layer.x = newLeft;
+          layer.y = newTop;
+        }
+      }
+
+      function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+        document.ontouchend = null;
+        document.ontouchmove = null;
+      }
+    }
+
+    // LAYER SELECTION & UPDATE LOGIC
+    function selectLayer(id) {
+      state.selectedLayerId = id;
+      
+      // Update UI Highlights
+      document.querySelectorAll('#canvas-elements-container > div').forEach(el => el.classList.remove('selected-element'));
+      const activeEl = document.getElementById(id);
+      if (activeEl) activeEl.classList.add('selected-element');
+
+      const layer = state.layers.find(l => l.id === id);
+      if (!layer) return;
+
+      if (layer.type === 'text') {
+        switchTab('text-tab');
+        document.getElementById('text-content-input').value = layer.text;
+        document.getElementById('font-family-select').value = layer.fontFamily;
+        document.getElementById('font-size-input').value = layer.fontSize;
+        document.getElementById('font-color-input').value = layer.color;
+        document.getElementById('font-color-text').value = layer.color;
+      } else if (layer.type === 'stamp') {
+        switchTab('stamps-tab');
+        document.getElementById('active-stamp-controls').classList.remove('hidden');
+        document.getElementById('stamp-size-range').value = layer.size || 100;
+        document.getElementById('stamp-rotate-range').value = layer.rotate || 0;
+      }
+
+      renderLayersList();
+    }
+
+    function deselectAllLayers() {
+      state.selectedLayerId = null;
+      document.querySelectorAll('#canvas-elements-container > div').forEach(el => el.classList.remove('selected-element'));
+      document.getElementById('active-stamp-controls').classList.add('hidden');
+      renderLayersList();
+    }
+
+    function updateActiveText(property, val) {
+      if (!state.selectedLayerId) return;
+      const layer = state.layers.find(l => l.id === state.selectedLayerId);
+      if (layer && layer.type === 'text') {
+        layer[property] = val;
+        renderLayerOnCanvas(layer);
+      }
+    }
+
+    function toggleActiveTextBold() {
+      if (!state.selectedLayerId) return;
+      const layer = state.layers.find(l => l.id === state.selectedLayerId);
+      if (layer && layer.type === 'text') {
+        layer.isBold = !layer.isBold;
+        renderLayerOnCanvas(layer);
+      }
+    }
+
+    function toggleActiveTextItalic() {
+      if (!state.selectedLayerId) return;
+      const layer = state.layers.find(l => l.id === state.selectedLayerId);
+      if (layer && layer.type === 'text') {
+        layer.isItalic = !layer.isItalic;
+        renderLayerOnCanvas(layer);
+      }
+    }
+
+    function deleteActiveLayer() {
+      if (!state.selectedLayerId) return;
+      const id = state.selectedLayerId;
+      state.layers = state.layers.filter(l => l.id !== id);
+      
+      const el = document.getElementById(id);
+      if (el) el.remove();
+      
+      deselectAllLayers();
+    }
+
+    // STAMPS CREATION
+    function addPresetStamp(type) {
+      const id = 'stamp_' + Date.now();
+      let htmlContent = '';
+
+      if (type === 'red-seal') {
+        htmlContent = `<div class="w-full h-full rounded-full bg-rose-900 border-4 border-rose-700 shadow-xl flex items-center justify-center text-amber-300 text-3xl"><i class="fa-solid fa-dragon"></i></div>`;
+      } else if (type === 'gold-seal') {
+        htmlContent = `<div class="w-full h-full rounded-full bg-gradient-to-tr from-amber-600 to-amber-400 border-4 border-amber-200 shadow-xl flex items-center justify-center text-slate-950 text-3xl"><i class="fa-solid fa-crown"></i></div>`;
+      } else if (type === 'magic-seal') {
+        htmlContent = `<div class="w-full h-full rounded-full bg-indigo-950 border-4 border-cyan-400 shadow-cyan-500/50 shadow-xl flex items-center justify-center text-cyan-300 text-3xl"><i class="fa-solid fa-hat-wizard"></i></div>`;
+      } else if (type === 'tech-stamp') {
+        htmlContent = `<div class="w-full h-full rounded bg-slate-950 border-2 border-red-600 flex items-center justify-center text-red-500 font-mono font-black tracking-widest text-sm uppercase -rotate-6">ОДОБРЕНО</div>`;
+      } else if (type === 'guild-seal') {
+        htmlContent = `<div class="w-full h-full rounded-full bg-emerald-950 border-4 border-emerald-400 shadow-xl flex items-center justify-center text-emerald-300 text-3xl"><i class="fa-solid fa-compass"></i></div>`;
+      }
+
+      const newStamp = {
+        id: id,
+        type: 'stamp',
+        html: htmlContent,
+        x: 650,
+        y: 400,
+        size: 100,
+        rotate: 0
+      };
+
+      state.layers.push(newStamp);
+      renderLayerOnCanvas(newStamp);
+      selectLayer(id);
+    }
+
+    function handleStampUpload(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const id = 'stamp_' + Date.now();
+          const htmlContent = `<img src="${evt.target.result}" class="w-full h-full object-contain pointer-events-none" />`;
+          
+          const newStamp = {
+            id: id,
+            type: 'stamp',
+            html: htmlContent,
+            x: 600,
+            y: 350,
+            size: 120,
+            rotate: 0
+          };
+
+          state.layers.push(newStamp);
+          renderLayerOnCanvas(newStamp);
+          selectLayer(id);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function updateActiveStamp(prop, val) {
+      if (!state.selectedLayerId) return;
+      const layer = state.layers.find(l => l.id === state.selectedLayerId);
+      if (layer && layer.type === 'stamp') {
+        layer[prop] = val;
+        renderLayerOnCanvas(layer);
+      }
+    }
+
+    // RENDER LAYERS SIDEBAR
+    function renderLayersList() {
+      const container = document.getElementById('layers-list');
+      container.innerHTML = '';
+
+      if (state.layers.length === 0) {
+        container.innerHTML = `<div class="text-xs text-slate-500 italic text-center py-4">Слоев нет. Добавьте текст или печать.</div>`;
+        return;
+      }
+
+      state.layers.slice().reverse().forEach(layer => {
+        const isSelected = layer.id === state.selectedLayerId;
+        const item = document.createElement('div');
+        item.className = `flex items-center justify-between p-2.5 rounded-lg border text-xs cursor-pointer transition ${isSelected ? 'bg-amber-950/40 border-amber-500 text-amber-300' : 'bg-slate-800 border-slate-750 text-slate-300 hover:bg-slate-750'}`;
+        
+        const title = layer.type === 'text' ? `Текст: "${layer.text.substring(0, 18)}..."` : `Печать / Штамп`;
+        const icon = layer.type === 'text' ? 'fa-font text-amber-400' : 'fa-stamp text-emerald-400';
+
+        item.innerHTML = `
+          <div class="flex items-center gap-2 truncate" onclick="selectLayer('${layer.id}')">
+            <i class="fa-solid ${icon}"></i>
+            <span class="truncate font-medium">${title}</span>
+          </div>
+          <button onclick="event.stopPropagation(); state.selectedLayerId='${layer.id}'; deleteActiveLayer()" class="text-rose-400 hover:text-rose-300 p-1">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        `;
+
+        container.appendChild(item);
+      });
+    }
+
+    // PRESET TEMPLATES LOAD
+    function loadPresetTemplate(presetKey) {
+      // Clear existing layers
+      document.getElementById('canvas-elements-container').innerHTML = '';
+      state.layers = [];
+
+      if (presetKey === 'hogwarts') {
+        setCanvasRatio('a4-landscape');
+        setPresetBg('parchment');
+        
+        addTextLayer('ШКОЛА ЧАРОДЕЙСТВА И волшебства', { x: 120, y: 70, fontSize: 32, fontFamily: 'font-ruslan', color: '#451a03', align: 'center' });
+        addTextLayer('ГРАМОТА ОБ ОКОНЧАНИИКУРСА', { x: 230, y: 140, fontSize: 24, fontFamily: 'font-cormorant', isBold: true, color: '#78350f' });
+        addTextLayer('Настоящим удостоверяется, что студент', { x: 270, y: 220, fontSize: 16, fontFamily: 'font-cormorant', color: '#1e293b' });
+        addTextLayer('Александр де Мортейль', { x: 210, y: 260, fontSize: 36, fontFamily: 'font-marck', color: '#991b1b' });
+        addTextLayer('Успешно сдал экзамены по Защите от Темных Искусств и Зельеварению с высшей оценкой "Превосходно".', { x: 140, y: 340, fontSize: 16, fontFamily: 'font-cormorant', color: '#334155' });
+        addTextLayer('Директор Школы: __________________', { x: 100, y: 470, fontSize: 16, fontFamily: 'font-caveat', color: '#1e293b' });
+
+        addPresetStamp('red-seal');
+      } else if (presetKey === 'military') {
+        setCanvasRatio('a4-landscape');
+        setPresetBg('royal');
+
+        addTextLayer('ВОЕННЫЙ УКАЗ ИМПЕРИИ', { x: 190, y: 70, fontSize: 34, fontFamily: 'font-ruslan', color: '#fef3c7' });
+        addTextLayer('О ПРИСВОЕНИИ ЗВАНИЯ И НАГРАЖДЕНИИ', { x: 220, y: 130, fontSize: 18, fontFamily: 'font-montserrat', isBold: true, color: '#f59e0b' });
+        addTextLayer('Рыцарю Ордена Солнца', { x: 300, y: 210, fontSize: 18, fontFamily: 'font-cormorant', color: '#e2e8f0' });
+        addTextLayer('Сэру Вальтеру из Вестфалии', { x: 220, y: 250, fontSize: 34, fontFamily: 'font-cormorant', isBold: true, color: '#fbbf24' });
+        addTextLayer('За непревзойденное мужество при обороне Цитадели от полчищ скверны.', { x: 150, y: 330, fontSize: 16, fontFamily: 'font-montserrat', color: '#cbd5e1' });
+        
+        addPresetStamp('gold-seal');
+      } else if (presetKey === 'sci-fi') {
+        setCanvasRatio('a4-landscape');
+        setPresetBg('scifi');
+
+        addTextLayer('UNITED EARTH FLEET // COMMAND DECREE', { x: 120, y: 60, fontSize: 24, fontFamily: 'font-montserrat', isBold: true, color: '#22d3ee' });
+        addTextLayer('ПИЛОТСКАЯ ЛИЦЕНЗИЯ КЛАССА A', { x: 220, y: 120, fontSize: 28, fontFamily: 'font-comfortaa', color: '#67e8f9' });
+        addTextLayer('Пилот: Капитан Алекс Рипли', { x: 260, y: 220, fontSize: 22, fontFamily: 'font-montserrat', color: '#ffffff' });
+        addTextLayer('Допуск к управлению крейсерами класса "Глаз Бури"', { x: 200, y: 300, fontSize: 15, fontFamily: 'font-montserrat', color: '#94a3b8' });
+
+        addPresetStamp('tech-stamp');
+      } else if (presetKey === 'tavern') {
+        setCanvasRatio('a4-portrait');
+        setPresetBg('parchment');
+
+        addTextLayer('ГИЛЬДИЯ ИСКАТЕЛЕЙ', { x: 120, y: 80, fontSize: 30, fontFamily: 'font-ruslan', color: '#451a03' });
+        addTextLayer('Свидетельство Члена Гильдии', { x: 110, y: 150, fontSize: 20, fontFamily: 'font-marck', color: '#78350f' });
+        addTextLayer('Настоящий документ подтверждает статус:', { x: 100, y: 230, fontSize: 16, fontFamily: 'font-cormorant', color: '#1e293b' });
+        addTextLayer('Гаррет "Тень" Блэкwood', { x: 110, y: 280, fontSize: 28, fontFamily: 'font-caveat', color: '#991b1b' });
+        
+        addPresetStamp('guild-seal');
+      }
+
+      deselectAllLayers();
+    }
+
+    // EXPORT HIGH-RES IMAGE
+    function exportCanvas() {
+      deselectAllLayers();
+      const canvasTarget = document.getElementById('certificate-canvas');
+
+      // HTML2Canvas render options
+      html2canvas(canvasTarget, {
+        scale: 2, // High resolution (2x screen DPI)
+        useCORS: true,
+        logging: false
+      }).then(renderedCanvas => {
+        const link = document.createElement('a');
+        link.download = `RP-Certificate-${Date.now()}.png`;
+        link.href = renderedCanvas.toDataURL('image/png');
+        link.click();
+      });
+    }
+
+    // LOCAL STORAGE SAVE / LOAD
+    function saveTemplateToLocal() {
+      const templateData = {
+        aspectRatio: state.aspectRatio,
+        bgOverlayOpacity: state.bgOverlayOpacity,
+        bgUrl: document.getElementById('canvas-bg-layer').style.backgroundImage,
+        layers: state.layers
+      };
+
+      localStorage.setItem('rp_certificate_saved_template', JSON.stringify(templateData));
+      showToast('Шаблон сохранен в память браузера!');
+    }
+
+    function loadTemplateFromLocal() {
+      const dataStr = localStorage.getItem('rp_certificate_saved_template');
+      if (!dataStr) {
+        showToast('Сохраненный шаблон не найден.');
+        return;
+      }
+
+      const data = JSON.parse(dataStr);
+      setCanvasRatio(data.aspectRatio);
+      state.layers = data.layers;
+
+      document.getElementById('canvas-bg-layer').style.backgroundImage = data.bgUrl;
+      updateBgOverlay(data.bgOverlayOpacity || 0);
+
+      document.getElementById('canvas-elements-container').innerHTML = '';
+      state.layers.forEach(l => renderLayerOnCanvas(l));
+      
+      deselectAllLayers();
+      showToast('Шаблон загружен!');
+    }
+
+    // SUPABASE INTEGRATION
+    function saveSupabaseConfig() {
+      const url = document.getElementById('supabase-url').value;
+      const key = document.getElementById('supabase-key').value;
+
+      if (url && key) {
+        localStorage.setItem('rp_certificate_sp_url', url);
+        localStorage.setItem('rp_certificate_sp_key', key);
+        initSupabase(url, key);
+        toggleModal('supabase-modal');
+        showToast('Ключи Supabase сохранены');
+      }
+    }
+
+    function initSupabase(url, key) {
+      try {
+        state.supabaseClient = supabase.createClient(url, key);
+      } catch (err) {
+        console.error('Supabase init error:', err);
+      }
+    }
+
+    async function cloudSaveTemplate() {
+      if (!state.supabaseClient) {
+        showToast('Сначала введите URL и Anon Key Supabase');
+        return;
+      }
+
+      const templateData = {
+        aspectRatio: state.aspectRatio,
+        bgUrl: document.getElementById('canvas-bg-layer').style.backgroundImage,
+        layers: state.layers,
+        created_at: new Date()
+      };
+
+      try {
+        const { data, error } = await state.supabaseClient
+          .from('certificate_templates')
+          .insert([{ data: templateData }]);
+
+        if (error) throw error;
+        showToast('Шаблон успешно сохранен в Supabase!');
+      } catch (err) {
+        showToast('Ошибка Supabase (убедитесь, что создана таблица certificate_templates)');
+        console.error(err);
+      }
+    }
+
+    // UTILS
+    function toggleModal(id) {
+      const modal = document.getElementById(id);
+      modal.classList.toggle('hidden');
+    }
+
+    function showToast(msg) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-5 right-5 bg-amber-500 text-slate-950 font-bold px-4 py-2.5 rounded-lg shadow-2xl z-50 transition transform duration-300 text-xs';
+      toast.innerText = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+  </script>
+</body>
+</html>
