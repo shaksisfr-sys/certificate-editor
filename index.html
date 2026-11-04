@@ -20,7 +20,7 @@
 .draggable{position:absolute;cursor:move;touch-action:none;white-space:pre-wrap;max-width:95%;overflow-wrap:anywhere}
 .draggable.active{outline:2px dashed #eab308;outline-offset:4px}
 .panel{background:#1e293b;border:1px solid #334155;border-radius:9px;padding:14px}
-input,select,button{font:inherit}input[type=text],input[type=number],select{background:#0f172a;color:#f1f5f9;border:1px solid #475569;border-radius:5px;padding:6px;min-width:0}
+input,select,textarea,button{font:inherit}input[type=text],input[type=number],select,textarea{background:#0f172a;color:#f1f5f9;border:1px solid #475569;border-radius:5px;padding:6px;min-width:0;resize:vertical}
 button{cursor:pointer;border-radius:5px;padding:7px 10px}
 @media(max-width:900px){#workspace{flex-direction:column!important}aside{width:100%!important;max-height:none!important}main{min-height:500px}}
 </style>
@@ -92,10 +92,10 @@ button{cursor:pointer;border-radius:5px;padding:7px 10px}
 let appState={
  format:'landscape',bgPreset:'parchment',customBgUrl:null,overlayOpacity:0,
  elements:[
-  {id:'el-1',content:'УКАЗ И НАГРАДА',font:'font-slavic',size:36,color:'#4a1515',x:250,y:40,weight:'bold',align:'center'},
-  {id:'el-2',content:'Настоящим подтверждается, что храбрый воин',font:'font-handwrite',size:22,color:'#2b0c0c',x:180,y:120,weight:'normal',align:'center'},
-  {id:'el-3',content:'РИЧАРД ЛЕОНОР',font:'font-gothic',size:48,color:'#851414',x:220,y:180,weight:'bold',align:'center'},
-  {id:'el-4',content:'проявил нечеловеческую отвагу при защите Цитадели от полчищ скверны и награждается Высшим Орденом Короны.',font:'font-slavic',size:18,color:'#1a0505',x:100,y:270,weight:'normal',align:'center'}
+  {id:'el-1',content:'УКАЗ И НАГРАДА',font:'font-slavic',size:36,color:'#4a1515',x:250,y:40,bold:true,italic:false,align:'center'},
+  {id:'el-2',content:'Настоящим подтверждается, что храбрый воин',font:'font-handwrite',size:22,color:'#2b0c0c',x:180,y:120,bold:false,italic:false,align:'center'},
+  {id:'el-3',content:'РИЧАРД ЛЕОНОР',font:'font-gothic',size:48,color:'#851414',x:220,y:180,bold:true,italic:false,align:'center'},
+  {id:'el-4',content:'проявил нечеловеческую отвагу при защите Цитадели от полчищ скверны и награждается Высшим Орденом Короны.',font:'font-slavic',size:18,color:'#1a0505',x:100,y:270,bold:false,italic:false,align:'center'}
  ],
  seal:{visible:true,type:'wax',customUrl:null,x:620,y:380,size:130,rotate:-12}
 };
@@ -117,7 +117,15 @@ function renderCanvas(){
  layers.innerHTML='';
  appState.elements.forEach(el=>{
   const d=document.createElement('div');d.id=el.id;d.className=`draggable ${el.font} ${activeElementId===el.id?'active':''}`;
-  Object.assign(d.style,{left:el.x+'px',top:el.y+'px',fontSize:el.size+'px',color:el.color,fontWeight:el.weight||'normal',textAlign:el.align||'left'});
+  Object.assign(d.style,{
+   left:el.x+'px',
+   top:el.y+'px',
+   fontSize:el.size+'px',
+   color:el.color,
+   fontWeight:el.bold?'bold':'normal',
+   fontStyle:el.italic?'italic':'normal',
+   textAlign:el.align||'left'
+  });
   d.textContent=el.content;layers.appendChild(d);
  });
  if(appState.seal.visible){
@@ -132,22 +140,33 @@ function renderControls(){
  const list=$('textControlsList');list.innerHTML='';
  appState.elements.forEach((el,i)=>{
   const box=document.createElement('div');box.className='panel';box.style.padding='9px';box.style.borderColor=activeElementId===el.id?'#d97706':'#334155';
+  
   const title=document.createElement('div');title.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:7px';
   const num=document.createElement('span');num.textContent='#'+(i+1);num.style.color='#94a3b8';num.style.fontSize='12px';
-  const input=document.createElement('input');input.type='text';input.value=el.content;input.style.flex='1';input.placeholder='Текст грамоты';
-  input.addEventListener('input',()=>{el.content=input.value;const canvasText=$(el.id);if(canvasText)canvasText.textContent=input.value});
+  
+  const textarea=document.createElement('textarea');textarea.value=el.content;textarea.style.cssText='flex:1;height:54px;font-size:12px';textarea.placeholder='Текст грамоты (можно вводить переносы строк)';
+  textarea.addEventListener('input',()=>{el.content=textarea.value;const canvasText=$(el.id);if(canvasText)canvasText.textContent=textarea.value});
+  
   const del=document.createElement('button');del.textContent='✕';del.style.background='#7f1d1d';del.onclick=()=>removeText(el.id);
-  title.append(num,input,del);box.append(title);
-  const row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:6px';
+  title.append(num,textarea,del);box.append(title);
+  
+  const row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:6px;margin-bottom:6px';
   const font=document.createElement('select');[['font-slavic','Славянский'],['font-gothic','Готика'],['font-handwrite','Рукописный'],['font-cinzel','Антиква'],['font-pixel','Пиксельный']].forEach(([v,t])=>{let o=document.createElement('option');o.value=v;o.textContent=t;font.append(o)});font.value=el.font;font.onchange=()=>{el.font=font.value;renderCanvas()};
   const size=document.createElement('input');size.type='number';size.min=8;size.max=160;size.value=el.size;size.onchange=()=>{el.size=Math.max(8,Math.min(160,Number(size.value)||8));renderCanvas()};
   const color=document.createElement('input');color.type='color';color.value=el.color;color.style.width='100%';color.oninput=()=>{el.color=color.value;const d=$(el.id);if(d)d.style.color=color.value};
-  row.append(font,size,color);box.append(row);list.append(box);
+  row.append(font,size,color);box.append(row);
+
+  const rowStyle=document.createElement('div');rowStyle.style.cssText='display:flex;gap:6px;align-items:center';
+  const btnBold=document.createElement('button');btnBold.textContent='B';btnBold.style.fontWeight='bold';btnBold.style.flex='1';btnBold.style.background=el.bold?'#d97706':'#334155';btnBold.onclick=()=>{el.bold=!el.bold;renderApp()};
+  const btnItalic=document.createElement('button');btnItalic.textContent='I';btnItalic.style.fontStyle='italic';btnItalic.style.flex='1';btnItalic.style.background=el.italic?'#d97706':'#334155';btnItalic.onclick=()=>{el.italic=!el.italic;renderApp()};
+  rowStyle.append(btnBold,btnItalic);box.append(rowStyle);
+
+  list.append(box);
  });
  $('sealAdjustments').style.display=appState.seal.visible?'block':'none';
  $('sealSizeVal').textContent=appState.seal.size+'px';$('sealRotateVal').textContent=appState.seal.rotate+'°';
 }
-function addText(){const id='el-'+Date.now();appState.elements.push({id,content:'Новый текст',font:'font-slavic',size:24,color:'#000000',x:150,y:150,weight:'normal',align:'left'});activeElementId=id;renderApp()}
+function addText(){const id='el-'+Date.now();appState.elements.push({id,content:'Новый текст',font:'font-slavic',size:24,color:'#000000',x:150,y:150,bold:false,italic:false,align:'center'});activeElementId=id;renderApp()}
 function removeText(id){appState.elements=appState.elements.filter(e=>e.id!==id);if(activeElementId===id)activeElementId=null;renderApp()}
 function setPresetBg(p){appState.bgPreset=p;appState.customBgUrl=null;renderCanvas()}
 function handleBgUpload(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{appState.customBgUrl=r.result;renderCanvas()};r.readAsDataURL(f)}
@@ -161,13 +180,13 @@ function removeSeal(){appState.seal.visible=false;renderApp()}
 function applyPreset(p){
  if(!p)return;
  const data={
- hogwarts:{bg:'parchment',texts:[['ШКОЛА МАГИИ И ВОЛШЕБСТВА','font-gothic',32,'#2b0c0c',180,50],['Свидетельствует о том, что юный маг','font-handwrite',20,'#4a1515',220,130],['АЛЕКСАНДР БЛЕК','font-slavic',40,'#851414',230,190],['успешно сдал экзамены по дисциплине «Защита от Тёмных Искусств».','font-handwrite',22,'#1a0505',120,280]],seal:'wax'},
- military:{bg:'royal',texts:[['БОЕВОЙ УКАЗ №404','font-cinzel',36,'#f59e0b',230,50],['За проявленное мужество и отвагу в бою','font-slavic',20,'#e2e8f0',200,140],['КАПИТАН ВАЛЕНТАЙН','font-cinzel',38,'#ef4444',180,210]],seal:'gold'},
- scifi:{bg:'scifi',texts:[['PILOT LICENSE // SECTOR 7','font-pixel',20,'#22d3ee',150,60],['ID: #8940-EX-ORION','font-pixel',14,'#a855f7',240,140],['COMMANDER Shepard','font-cinzel',32,'#ffffff',200,220]],seal:'arcane'},
- guild:{bg:'parchment',texts:[['СВИДЕТЕЛЬСТВО ГИЛЬДИИ','font-cinzel',32,'#4a1515',180,55],['Настоящим подтверждается, что','font-handwrite',22,'#2b0c0c',220,140],['ИМЯ ПЕРСОНАЖА','font-gothic',42,'#851414',220,205],['принят в ряды гильдии и обладает всеми правами её члена.','font-slavic',20,'#1a0505',125,295]],seal:'gold'}
+ hogwarts:{bg:'parchment',texts:[['ШКОЛА МАГИИ И ВОЛШЕБСТВА','font-gothic',32,'#2b0c0c',180,50,true,false],['Свидетельствует о том, что юный маг','font-handwrite',20,'#4a1515',220,130,false,false],['АЛЕКСАНДР БЛЕК','font-slavic',40,'#851414',230,190,true,false],['успешно сдал экзамены по дисциплине\n«Защита от Тёмных Искусств».','font-handwrite',22,'#1a0505',120,280,false,false]],seal:'wax'},
+ military:{bg:'royal',texts:[['БОЕВОЙ УКАЗ №404','font-cinzel',36,'#f59e0b',230,50,true,false],['За проявленное мужество и отвагу в бою','font-slavic',20,'#e2e8f0',200,140,false,false],['КАПИТАН ВАЛЕНТАЙН','font-cinzel',38,'#ef4444',180,210,true,false]],seal:'gold'},
+ scifi:{bg:'scifi',texts:[['PILOT LICENSE // SECTOR 7','font-pixel',20,'#22d3ee',150,60,false,false],['ID: #8940-EX-ORION','font-pixel',14,'#a855f7',240,140,false,false],['COMMANDER Shepard','font-cinzel',32,'#ffffff',200,220,true,false]],seal:'arcane'},
+ guild:{bg:'parchment',texts:[['СВИДЕТЕЛЬСТВО ГИЛЬДИИ','font-cinzel',32,'#4a1515',180,55,true,false],['Настоящим подтверждается, что','font-handwrite',22,'#2b0c0c',220,140,false,false],['ИМЯ ПЕРСОНАЖА','font-gothic',42,'#851414',220,205,true,false],['принят в ряды гильдии\nи обладает всеми правами её члена.','font-slavic',20,'#1a0505',125,295,false,false]],seal:'gold'}
  };
  const d=data[p];if(!d)return;appState.bgPreset=d.bg;appState.customBgUrl=null;
- appState.elements=d.texts.map((t,i)=>({id:'el-'+(i+1),content:t[0],font:t[1],size:t[2],color:t[3],x:t[4],y:t[5],weight:'normal',align:'center'}));
+ appState.elements=d.texts.map((t,i)=>({id:'el-'+(i+1),content:t[0],font:t[1],size:t[2],color:t[3],x:t[4],y:t[5],bold:t[6],italic:t[7],align:'center'}));
  appState.seal={visible:true,type:d.seal,customUrl:null,x:600,y:360,size:130,rotate:-8};activeElementId=null;$('templatePreset').value='';renderApp();
 }
 // Drag via Pointer Events: supports mouse, pen and touch.
